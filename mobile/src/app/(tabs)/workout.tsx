@@ -9,6 +9,10 @@ import { Alert } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
 import { exerciseBests, detectPRs } from '@/lib/history';
+import * as Haptics from 'expo-haptics';
+
+// Haptics are native-only; no-op on web.
+const haptic = (fn: () => Promise<any>) => { if (Platform.OS !== 'web') fn().catch(() => {}); };
 
 // Match the editor's bodyweight detection so old routines (no stored flag) still show BW.
 const BODYWEIGHT_RE = /pull[-\s]?up|chin[-\s]?up|push[-\s]?up|\bdip\b|plank|sit[-\s]?up|crunch|muscle[-\s]?up|pistol|burpee|leg\s?raise|mountain\s?climber|hanging|bodyweight/i;
@@ -206,6 +210,7 @@ export default function WorkoutScreen() {
       exercises: loggedExercises,
     });
 
+    haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
     endWorkout();
     router.push('/workout-summary' as any);
   }, [activeExercises, workoutStartTime, activeRoutine, workouts, addWorkout, setLastCompletedWorkout, endWorkout, router]);
@@ -218,6 +223,7 @@ export default function WorkoutScreen() {
       });
       const wasCompleted = prev[eIdx].sets[sIdx].completed;
       if (!wasCompleted) {
+        haptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
         // In a superset, don't rest between A→B — only after the group's last exercise.
         const ex = prev[eIdx];
         const grp = ex.supersetGroup;

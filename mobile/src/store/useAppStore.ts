@@ -97,6 +97,8 @@ export interface FeedPost {
   prs?: number;
   likes: number;
   saves: number;
+  liked?: boolean;
+  saved?: boolean;
   commentCount: number;
   initialComments: Comment[];
 }
@@ -115,6 +117,8 @@ export interface AppState {
   updateProfile: (updates: Partial<ProfileState>) => void;
   addWorkout: (workout: Omit<WorkoutRecord, 'id' | 'timestamp'>) => void;
   addFeedPost: (post: FeedPost) => void;
+  toggleLikePost: (id: string) => void;
+  toggleSavePost: (id: string) => void;
   deleteWorkout: (id: string | number) => void;
   addRoutine: (routine: Omit<Routine, 'id'>) => void;
   updateRoutine: (id: string, updates: Partial<Omit<Routine, 'id'>>) => void;
@@ -300,6 +304,12 @@ export const useAppStore = create<AppState>()(
         workouts: [{ ...workout, id: Date.now().toString(), timestamp: Date.now() }, ...state.workouts]
       })),
 
+      toggleLikePost: (id) => set((state) => ({
+        feed: state.feed.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.likes + (p.liked ? -1 : 1) } : p)
+      })),
+      toggleSavePost: (id) => set((state) => ({
+        feed: state.feed.map(p => p.id === id ? { ...p, saved: !p.saved, saves: p.saves + (p.saved ? -1 : 1) } : p)
+      })),
       addFeedPost: (post) => set((state) => ({
         feed: [post, ...state.feed]
       })),

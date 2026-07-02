@@ -14,16 +14,17 @@ import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-import { FeedPost } from '@/store/useAppStore';
+import { FeedPost, useAppStore } from '@/store/useAppStore';
 
 export default function PostCard({ post }: { post: FeedPost }) {
   const router = useRouter();
+  const { toggleLikePost, toggleSavePost } = useAppStore();
 
-  // Engagement state
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes);
-  const [savesCount, setSavesCount] = useState(post.saves);
+  // Engagement state is persisted on the post in the store.
+  const liked = !!post.liked;
+  const saved = !!post.saved;
+  const likesCount = post.likes;
+  const savesCount = post.saves;
   const [commentsVisible, setCommentsVisible] = useState(false);
 
   // Carousel
@@ -49,14 +50,12 @@ export default function PostCard({ post }: { post: FeedPost }) {
 
   const handleLike = () => {
     likeScale.value = withSequence(withTiming(1.35, { duration: 90 }), withSpring(1, { damping: 8 }));
-    setLiked(l => !l);
-    setLikesCount(c => liked ? c - 1 : c + 1);
+    toggleLikePost(post.id);
   };
 
   const handleSave = () => {
     saveScale.value = withSequence(withTiming(1.35, { duration: 90 }), withSpring(1, { damping: 8 }));
-    setSaved(s => !s);
-    setSavesCount(c => saved ? c - 1 : c + 1);
+    toggleSavePost(post.id);
   };
 
   const handleShare = async () => {
@@ -76,10 +75,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
   const handleDoubleTap = () => {
     const now = Date.now();
     if (now - lastTap.current < 300) {
-      if (!liked) {
-        setLiked(true);
-        setLikesCount(c => c + 1);
-      }
+      if (!liked) toggleLikePost(post.id);
       heartScale.value = 0;
       heartScale.value = withSequence(
         withSpring(1.6, { damping: 5 }),

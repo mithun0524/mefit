@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Image, ScrollView } from '@/tw';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Plus, Search } from 'lucide-react-native';
+import { Plus, Search, Users } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -66,14 +66,22 @@ export default function FeedScreen() {
 
         {/* Post Feed */}
         <View className="px-3 pt-4 pb-24">
-          {feed.map((post, idx) => (
-            <Animated.View
-              key={post.id}
-              entering={FadeInDown.delay(idx * 60).duration(400).springify().damping(14)}
-            >
-              <PostCard post={post} />
-            </Animated.View>
-          ))}
+          {feed.length === 0 ? (
+            <View className="items-center py-20 px-8">
+              <Users size={28} color="#3f3f46" />
+              <Text className="text-neutral-400 text-[15px] mt-3">No posts yet</Text>
+              <Text className="text-neutral-600 text-[13px] mt-1 text-center">Share a workout to start your feed</Text>
+            </View>
+          ) : (
+            feed.map((post, idx) => (
+              <Animated.View
+                key={post.id}
+                entering={FadeInDown.delay(idx * 60).duration(400).springify().damping(14)}
+              >
+                <PostCard post={post} />
+              </Animated.View>
+            ))
+          )}
         </View>
       </ScrollView>
 
