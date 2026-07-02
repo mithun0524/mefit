@@ -28,7 +28,7 @@ server.tool(
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }]
       };
     } catch (e) {
-      return { content: [{ type: "text", text: \`Error: \${e.message}\` }] };
+      return { content: [{ type: "text", text: `Error: ${e.message}` }] };
     }
   }
 );
@@ -42,7 +42,7 @@ server.tool(
     try {
       let q = supabase.from('exercises').select('name, muscle_group, equipment, description').limit(20);
       if (query) {
-        q = q.ilike('name', \`%\${query}%\`);
+        q = q.ilike('name', `%${query}%`);
       }
       const { data, error } = await q;
 
@@ -52,7 +52,7 @@ server.tool(
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }]
       };
     } catch (e) {
-      return { content: [{ type: "text", text: \`Error: \${e.message}\` }] };
+      return { content: [{ type: "text", text: `Error: ${e.message}` }] };
     }
   }
 );
@@ -65,7 +65,7 @@ server.tool(
   async ({ userId, focusArea }) => {
     // In a full implementation this would query the user's profile and use AI
     return {
-      content: [{ type: "text", text: \`Suggested \${focusArea} workout: 1. Squats 3x10, 2. Lunges 3x12, 3. Leg Press 3x10.\` }]
+      content: [{ type: "text", text: `Suggested ${focusArea} workout: 1. Squats 3x10, 2. Lunges 3x12, 3. Leg Press 3x10.` }]
     };
   }
 );
