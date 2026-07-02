@@ -7,7 +7,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
-import { MUSCLE_RECOVERY, computeReadiness, readinessLabel, readinessColor, type Energy } from '@/lib/readiness';
+import { computeReadiness, readinessLabel, readinessColor, type Energy } from '@/lib/readiness';
+import { computeMuscleRecovery } from '@/lib/recovery';
 import { deriveDashboardStats, todayKey } from '@/lib/stats';
 
 const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
@@ -32,11 +33,21 @@ export default function DashboardScreen() {
 
   const stats = useMemo(() => deriveDashboardStats(workouts), [workouts]);
 
-  const readiness = useMemo(() => computeReadiness(MUSCLE_RECOVERY, energy), [energy]);
+  // Real muscle recovery from the workout log → feeds readiness + the AI insight.
+  const recovery = useMemo(() => computeMuscleRecovery(workouts), [workouts]);
+  const readiness = useMemo(() => computeReadiness(recovery, energy), [recovery, energy]);
   const rColor = readinessColor(readiness);
   const rLabel = readinessLabel(readiness);
-  const weakest = useMemo(() => [...MUSCLE_RECOVERY].sort((a, b) => a.recovery - b.recovery)[0], []);
+  const sorted = useMemo(() => [...recovery].sort((a, b) => a.recovery - b.recovery), [recovery]);
+  const weakest = sorted[0];
   const readinessNote = readiness >= 75 ? 'All major groups recovered' : `${weakest.name} still fatigued (${weakest.recovery}%)`;
+
+  // Dynamic AI copy from the real recovery state.
+  const listPhrase = (xs: string[]) => xs.length <= 1 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+  const freshNames = recovery.filter(m => m.recovery >= 70).map(m => m.name);
+  const tiredNames = recovery.filter(m => m.recovery < 40).map(m => m.name);
+  const freshLabel = freshNames.length ? `${listPhrase(freshNames)} ${freshNames.length === 1 ? 'is' : 'are'} fresh` : 'Most muscle groups are still recovering';
+  const tiredLabel = tiredNames.length ? ` ${listPhrase(tiredNames)} still need${tiredNames.length === 1 ? 's' : ''} recovery.` : '';
 
   const maxVol = Math.max(...stats.weeklyK, 1);
   const minVol = Math.min(...stats.weeklyK);
@@ -116,7 +127,7 @@ export default function DashboardScreen() {
 
           <Text className="text-white text-lg font-bold mb-1 tracking-tight">Muscle group recommendation</Text>
           <Text className="text-neutral-400 text-[13px] mb-4 leading-relaxed">
-            You're at <Text style={{ color: rColor }} className="font-semibold">{readiness}% readiness</Text>. Chest and shoulders are fresh — a good day for your <Text className="text-white font-semibold">{topRoutine}</Text> routine. Legs are still recovering.
+            You're at <Text style={{ color: rColor }} className="font-semibold">{readiness}% readiness</Text>. {freshLabel} — a good day for your <Text className="text-white font-semibold">{topRoutine}</Text> routine.{tiredLabel}
           </Text>
 
           <View className="flex-row gap-3">
@@ -124,7 +135,11 @@ export default function DashboardScreen() {
               <Text className="text-white font-semibold text-[13px] mr-1.5">Start routine</Text>
               <ArrowRight size={13} color="white" />
             </Pressable>
-            <Pressable onPress={() => router.push('/(tabs)/coach')} style={{ borderWidth: 1, borderColor: '#313138' }} className="px-4 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-70">
+            <Pressable
+              onPress={() => router.push({ pathname: '/(tabs)/coach', params: { q: `Why is my training readiness ${readiness}% today, and what should I focus on?` } })}
+              style={{ borderWidth: 1, borderColor: '#313138' }}
+              className="px-4 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-70"
+            >
               <Text className="text-neutral-300 font-medium text-[13px]">Ask why</Text>
             </Pressable>
           </View>
@@ -140,7 +155,7 @@ export default function DashboardScreen() {
             <Activity size={18} color="#818cf8" />
           </View>
 
-          <MuscleHeatmap />
+          <MuscleHeatmap muscles={recovery} />
 
           <View className="flex-row justify-between mt-5 pt-4" style={{ borderTopWidth: 1, borderTopColor: '#26262c' }}>
             <View className="flex-row items-center"><View className="w-2 h-2 rounded-full bg-green-500 mr-2" /><Text className="text-[11px] text-neutral-400">Fresh</Text></View>

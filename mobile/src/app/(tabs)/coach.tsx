@@ -7,7 +7,11 @@ import Markdown from 'react-native-markdown-display';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
+import { getCoachReply, hasCoachKey, buildCoachContext } from '@/lib/coach';
+import { computeMuscleRecovery } from '@/lib/recovery';
+import { computeReadiness, readinessLabel } from '@/lib/readiness';
 
 type Attachment = { id: string; type: 'image' | 'file'; uri: string; name: string };
 type Message = { id: number; text: string; sender: 'ai' | 'user'; attachments?: Attachment[] };
@@ -54,9 +58,11 @@ const getAIReply = (prompt: string, userName: string, prefUnit: string): string 
 
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
-  const { profile } = useAppStore();
+  const { profile, workouts } = useAppStore();
   const { name, unit } = profile;
   const userName = name.split(' ')[0] || 'Athlete';
+  const initialQ = useLocalSearchParams<{ q?: string }>().q;
+  const readiness = React.useMemo(() => computeReadiness(computeMuscleRecovery(workouts), null), [workouts]);
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -83,18 +89,27 @@ export default function CoachScreen() {
     )
   };
 
-  // Initialize greeting dynamically based on profile
+  // Greeting references the athlete's real readiness today.
   useEffect(() => {
     if (messages.length === 0) {
       setMessages([
         {
           id: 1,
           sender: 'ai',
-          text: `Hey ${userName}! I saw you hit a new PR on squats yesterday 🎉 How are your legs feeling today?`,
+          text: `Hey ${userName}! You're at **${readiness}% training readiness** today (${readinessLabel(readiness)}). What do you want to work on?`,
         }
       ]);
     }
   }, [userName]);
+
+  // "Ask why" from the Overview opens the coach pre-loaded with a question.
+  useEffect(() => {
+    if (initialQ) {
+      const q = String(initialQ);
+      const t = setTimeout(() => sendMessage(q), 350);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const clearChat = () => {
     setMessages([
@@ -184,38 +199,50 @@ export default function CoachScreen() {
     setPendingAttachments(prev => prev.filter(att => att.id !== id));
   };
 
-  const sendMessage = (text = input) => {
+  const sendMessage = async (text = input) => {
     if (!text.trim() && pendingAttachments.length === 0) return;
 
     const currentAttachments = [...pendingAttachments];
-    const userMsg: Message = { 
-      id: Date.now(), 
-      sender: 'user', 
+    const history = messages.map(m => ({ sender: m.sender, text: m.text }));
+    const userMsg: Message = {
+      id: Date.now(),
+      sender: 'user',
       text: text.trim(),
-      attachments: currentAttachments.length > 0 ? currentAttachments : undefined
+      attachments: currentAttachments.length > 0 ? currentAttachments : undefined,
     };
-    
+
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setPendingAttachments([]);
     setIsTyping(true);
     scrollToBottom();
 
-    setTimeout(() => {
-      setIsTyping(false);
-      let replyText = getAIReply(text, userName, unit);
-      if (currentAttachments.length > 0) {
-        replyText = `*I see you uploaded an attachment! Since I'm currently running in mock mode, I can't analyze files yet, but your UI is ready to hook up to a real Vision/Document API!*\n\n` + (text.trim() ? replyText : '');
+    let replyText: string;
+    try {
+      if (hasCoachKey(profile)) {
+        // Real coach — reasons over live readiness / recovery / workout data.
+        replyText = await getCoachReply({
+          profile,
+          workouts,
+          history,
+          userText: text.trim(),
+          attachments: currentAttachments,
+        });
+      } else {
+        // No API key set → graceful templated fallback.
+        await new Promise(r => setTimeout(r, 800));
+        replyText = getAIReply(text, userName, unit);
+        if (currentAttachments.length > 0) {
+          replyText = `*Add your OpenAI API key in Profile → settings to enable real image analysis.*\n\n` + (text.trim() ? replyText : '');
+        }
       }
-      
-      const aiMsg: Message = {
-        id: Date.now() + 1,
-        sender: 'ai',
-        text: replyText.trim(),
-      };
-      setMessages(prev => [...prev, aiMsg]);
-      scrollToBottom();
-    }, 1200);
+    } catch (e: any) {
+      replyText = `⚠️ Couldn't reach the coach: ${e?.message || 'unknown error'}.\n\nCheck your OpenAI API key in **Profile → settings**.`;
+    }
+
+    setIsTyping(false);
+    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: replyText.trim() }]);
+    scrollToBottom();
   };
 
   return (
@@ -522,7 +549,7 @@ export default function CoachScreen() {
                 style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => {
                   setShowOptionsMenu(false);
-                  Alert.alert('AI Context', `The AI currently knows:\n- Name: ${name}\n- Preferred Units: ${unit}\n- Current Workout Phase: Hypertrophy\n- Recent PRs: 3`);
+                  Alert.alert(hasCoachKey(profile) ? 'AI context (live)' : 'AI context (add API key for live coach)', buildCoachContext(profile, workouts));
                 }}
               >
                 <Info size={20} color="#818cf8" />

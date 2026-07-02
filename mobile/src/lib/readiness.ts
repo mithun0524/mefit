@@ -4,16 +4,6 @@
 
 export type MuscleRecovery = { name: string; recovery: number };
 
-// 0-100: 100 = fully recovered (fresh), 0 = fully fatigued.
-export const MUSCLE_RECOVERY: MuscleRecovery[] = [
-  { name: 'Chest', recovery: 85 },
-  { name: 'Back', recovery: 60 },
-  { name: 'Legs', recovery: 15 },
-  { name: 'Shoulders', recovery: 95 },
-  { name: 'Arms', recovery: 70 },
-  { name: 'Core', recovery: 100 },
-];
-
 export type Energy = 'low' | 'good' | 'high' | null;
 
 const ENERGY_ADJUST: Record<Exclude<Energy, null>, number> = {

@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text } from '@/tw';
-import { MUSCLE_RECOVERY, muscleTint } from '@/lib/readiness';
+import { muscleTint, type MuscleRecovery } from '@/lib/readiness';
 
-export default function MuscleHeatmap() {
+export default function MuscleHeatmap({ muscles }: { muscles: MuscleRecovery[] }) {
   return (
     <View className="flex-row flex-wrap gap-3">
-      {MUSCLE_RECOVERY.map((muscle) => {
+      {muscles.map((muscle) => {
         const theme = muscleTint(muscle.recovery);
         return (
           <View
