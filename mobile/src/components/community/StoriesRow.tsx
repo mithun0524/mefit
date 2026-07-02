@@ -95,7 +95,7 @@ export default function StoriesRow({ myAvatar, onCreateStory }: { myAvatar: stri
                       <Image source={{ uri: myAvatar }} className="w-full h-full" resizeMode="cover" />
                     ) : (
                       <View className="w-full h-full bg-neutral-800 items-center justify-center">
-                        <Text className="text-neutral-400 text-lg font-black">+</Text>
+                        <Text className="text-neutral-400 text-lg font-bold">+</Text>
                       </View>
                     )
                   ) : (
@@ -162,8 +162,8 @@ export default function StoriesRow({ myAvatar, onCreateStory }: { myAvatar: stri
               {/* Workout Tag overlay */}
               <View className="absolute bottom-20 left-4 right-4 z-20">
                 <View className="bg-black/50 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/10">
-                  <Text className="text-white/60 text-[10px] font-bold uppercase tracking-wider mb-0.5">Crushed today</Text>
-                  <Text className="text-white font-extrabold text-base">Leg Day Annihilation</Text>
+                  <Text className="text-white/60 text-[11px] font-semibold mb-0.5">Crushed today</Text>
+                  <Text className="text-white font-bold text-base">Leg Day Annihilation</Text>
                   <Text className="text-indigo-300 text-xs font-semibold">15.2k lbs · 2 PRs</Text>
                 </View>
               </View>

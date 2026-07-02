@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert } from 'react-native';
-import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Trash2, Info, Share } from 'lucide-react-native';
+import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import Markdown from 'react-native-markdown-display';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 
 type Attachment = { id: string; type: 'image' | 'file'; uri: string; name: string };
@@ -52,6 +53,7 @@ const getAIReply = (prompt: string, userName: string, prefUnit: string): string 
 };
 
 export default function CoachScreen() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAppStore();
   const { name, unit } = profile;
   const userName = name.split(' ')[0] || 'Athlete';
@@ -66,8 +68,8 @@ export default function CoachScreen() {
 
   const markdownRules = {
     fence: (node: any, children: any, parent: any, styles: any) => (
-      <RNScrollView horizontal showsHorizontalScrollIndicator={false} key={node.key} style={{ marginTop: 8, marginBottom: 8, borderRadius: 8, backgroundColor: '#262626' }}>
-        <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#a78bfa', padding: 12, fontSize: 14 }}>
+      <RNScrollView horizontal showsHorizontalScrollIndicator={false} key={node.key} style={{ marginTop: 8, marginBottom: 8, borderRadius: 8, backgroundColor: '#26262c' }}>
+        <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', color: '#818cf8', padding: 12, fontSize: 14 }}>
           {node.content}
         </Text>
       </RNScrollView>
@@ -223,16 +225,16 @@ export default function CoachScreen() {
       keyboardVerticalOffset={0}
     >
       {/* ── Header ── */}
-      <View className="pt-12 pb-4 px-5 bg-neutral-950 border-b border-neutral-900 flex-row items-center justify-between z-10">
+      <View className="pb-4 px-5 border-b border-neutral-900 flex-row items-center justify-between z-10" style={{ backgroundColor: '#09090b', paddingTop: insets.top + 20 }}>
         <View className="flex-row items-center gap-3">
           <View className="w-9 h-9 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center">
             <Sparkles size={15} color="#818cf8" />
           </View>
           <View>
-            <Text className="text-white font-bold text-base tracking-tight">Coach AI</Text>
+            <Text className="text-white font-semibold text-base tracking-tight">Coach AI</Text>
             <View className="flex-row items-center gap-1.5">
-              <View className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <Text className="text-neutral-500 text-[10px] font-semibold">Context-Aware</Text>
+              <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#10b981' }} />
+              <Text className="text-neutral-500 text-[11px] font-medium">Context-aware</Text>
             </View>
           </View>
         </View>
@@ -280,8 +282,8 @@ export default function CoachScreen() {
                   </View>
                   <View style={{
                     flex: 1,
-                    backgroundColor: '#171717',
-                    borderWidth: 1, borderColor: 'rgba(64,64,64,0.5)',
+                    backgroundColor: '#1c1c21',
+                    borderWidth: 1, borderColor: '#313138',
                     borderRadius: 18,
                     borderBottomLeftRadius: isLastInGroup ? 4 : 18,
                     paddingHorizontal: 16, paddingVertical: 12,
@@ -343,8 +345,8 @@ export default function CoachScreen() {
                 </View>
               </View>
               <View style={{
-                backgroundColor: '#171717',
-                borderWidth: 1, borderColor: 'rgba(64,64,64,0.5)',
+                backgroundColor: '#1c1c21',
+                borderWidth: 1, borderColor: '#313138',
                 borderRadius: 18, borderBottomLeftRadius: 4,
                 paddingHorizontal: 16, paddingVertical: 16,
               }}>
@@ -360,28 +362,29 @@ export default function CoachScreen() {
       </RNScrollView>
 
       {/* ── Suggested Prompts ── */}
-      <View className="bg-neutral-950 border-t border-neutral-900/50">
+      <View className="border-t border-neutral-900" style={{ backgroundColor: '#09090b' }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           className="flex-row"
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12, gap: 8 }}
         >
           {SUGGESTED_PROMPTS.map((prompt, idx) => (
             <Pressable
               key={idx}
               onPress={() => sendMessage(prompt)}
               disabled={isTyping}
-              className="bg-neutral-900 border border-neutral-800 px-4 py-2 rounded-full active:bg-neutral-800 self-center"
+              className="px-4 py-2 rounded-full active:opacity-70 self-center"
+              style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
             >
-              <Text className="text-indigo-300 font-semibold text-sm">{prompt}</Text>
+              <Text className="text-indigo-300 font-medium text-sm">{prompt}</Text>
             </Pressable>
           ))}
         </ScrollView>
       </View>
 
       {/* ── Input Bar ── */}
-      <View className="px-4 pt-2 pb-8 bg-neutral-950 border-t border-neutral-900/50">
+      <View className="px-5 pt-2 pb-8 border-t border-neutral-900" style={{ backgroundColor: '#09090b' }}>
         
         {/* Pending Attachments Strip */}
         {pendingAttachments.length > 0 && (
@@ -406,8 +409,8 @@ export default function CoachScreen() {
           </ScrollView>
         )}
 
-        <View className="flex-row items-end bg-neutral-900 border border-neutral-800 rounded-2xl px-3 py-2 gap-2">
-          <Pressable onPress={handleAttachmentPress} className="w-8 h-8 rounded-xl bg-neutral-800 items-center justify-center mb-0.5 active:opacity-70 shrink-0">
+        <View className="flex-row items-end rounded-2xl px-3 py-2 gap-2" style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}>
+          <Pressable onPress={handleAttachmentPress} className="w-8 h-8 rounded-xl items-center justify-center mb-0.5 active:opacity-70 shrink-0" style={{ backgroundColor: '#26262c' }}>
             <Plus size={16} color="#71717a" />
           </Pressable>
 
@@ -444,42 +447,46 @@ export default function CoachScreen() {
       >
         <View className="flex-1 justify-end bg-black/60">
           <Pressable className="flex-1" onPress={() => setShowAttachmentMenu(false)} />
-          <View className="bg-neutral-900 border-t border-neutral-800 rounded-t-2xl p-5 pb-8">
-            <View className="w-10 h-1 bg-neutral-700 rounded-full self-center mb-5" />
-            
+          <View className="rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#1c1c21', borderTopWidth: 1, borderColor: '#313138' }}>
+            <View className="w-10 h-1 rounded-full self-center mb-5" style={{ backgroundColor: '#52525b' }} />
+
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white font-extrabold text-lg">Attach Media</Text>
-              <Pressable 
+              <Text className="text-white font-semibold text-lg">Attach media</Text>
+              <Pressable
                 onPress={() => setShowAttachmentMenu(false)}
-                className="w-7 h-7 rounded-full bg-neutral-800 items-center justify-center active:bg-neutral-700"
+                className="w-7 h-7 rounded-full items-center justify-center active:opacity-70"
+                style={{ backgroundColor: '#26262c' }}
               >
                 <X size={16} color="#a1a1aa" />
               </Pressable>
             </View>
 
             <View className="gap-3">
-              <Pressable 
-                className="flex-row items-center bg-neutral-950 border border-neutral-800 p-4 rounded-xl active:bg-neutral-800"
+              <Pressable
+                className="flex-row items-center p-4 rounded-xl active:opacity-70"
+                style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => handleAttachmentSelection(0)}
               >
                 <Camera size={20} color="#818cf8" />
-                <Text className="text-white font-semibold text-sm ml-3">Take Photo</Text>
+                <Text className="text-white font-medium text-sm ml-3">Take photo</Text>
               </Pressable>
 
-              <Pressable 
-                className="flex-row items-center bg-neutral-950 border border-neutral-800 p-4 rounded-xl active:bg-neutral-800"
+              <Pressable
+                className="flex-row items-center p-4 rounded-xl active:opacity-70"
+                style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => handleAttachmentSelection(1)}
               >
                 <ImageIcon size={20} color="#818cf8" />
-                <Text className="text-white font-semibold text-sm ml-3">Choose from Library</Text>
+                <Text className="text-white font-medium text-sm ml-3">Choose from library</Text>
               </Pressable>
 
-              <Pressable 
-                className="flex-row items-center bg-neutral-950 border border-neutral-800 p-4 rounded-xl active:bg-neutral-800"
+              <Pressable
+                className="flex-row items-center p-4 rounded-xl active:opacity-70"
+                style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => handleAttachmentSelection(2)}
               >
                 <FileText size={20} color="#818cf8" />
-                <Text className="text-white font-semibold text-sm ml-3">Choose File</Text>
+                <Text className="text-white font-medium text-sm ml-3">Choose file</Text>
               </Pressable>
             </View>
           </View>
@@ -495,22 +502,24 @@ export default function CoachScreen() {
       >
         <View className="flex-1 justify-end bg-black/60">
           <Pressable className="flex-1" onPress={() => setShowOptionsMenu(false)} />
-          <View className="bg-neutral-900 border-t border-neutral-800 rounded-t-2xl p-5 pb-8">
-            <View className="w-10 h-1 bg-neutral-700 rounded-full self-center mb-5" />
-            
+          <View className="rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#1c1c21', borderTopWidth: 1, borderColor: '#313138' }}>
+            <View className="w-10 h-1 rounded-full self-center mb-5" style={{ backgroundColor: '#52525b' }} />
+
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white font-extrabold text-lg">Chat Options</Text>
-              <Pressable 
+              <Text className="text-white font-semibold text-lg">Chat options</Text>
+              <Pressable
                 onPress={() => setShowOptionsMenu(false)}
-                className="w-7 h-7 rounded-full bg-neutral-800 items-center justify-center active:bg-neutral-700"
+                className="w-7 h-7 rounded-full items-center justify-center active:opacity-70"
+                style={{ backgroundColor: '#26262c' }}
               >
                 <X size={16} color="#a1a1aa" />
               </Pressable>
             </View>
 
             <View className="gap-3">
-              <Pressable 
-                className="flex-row items-center bg-neutral-950 border border-neutral-800 p-4 rounded-xl active:bg-neutral-800"
+              <Pressable
+                className="flex-row items-center p-4 rounded-xl active:opacity-70"
+                style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => {
                   setShowOptionsMenu(false);
                   Alert.alert('AI Context', `The AI currently knows:\n- Name: ${name}\n- Preferred Units: ${unit}\n- Current Workout Phase: Hypertrophy\n- Recent PRs: 3`);
@@ -518,24 +527,25 @@ export default function CoachScreen() {
               >
                 <Info size={20} color="#818cf8" />
                 <View className="ml-3">
-                  <Text className="text-white font-semibold text-sm">View AI Context</Text>
+                  <Text className="text-white font-medium text-sm">View AI context</Text>
                   <Text className="text-neutral-500 text-xs mt-0.5">See what Coach AI knows about you</Text>
                 </View>
               </Pressable>
 
-              <Pressable 
-                className="flex-row items-center bg-neutral-950 border border-neutral-800 p-4 rounded-xl active:bg-neutral-800"
+              <Pressable
+                className="flex-row items-center p-4 rounded-xl active:opacity-70"
+                style={{ borderWidth: 1, borderColor: '#313138' }}
                 onPress={() => {
                   setShowOptionsMenu(false);
                   Alert.alert('Shared', 'A link to this chat has been copied to your clipboard!');
                 }}
               >
                 <Share size={20} color="#818cf8" />
-                <Text className="text-white font-semibold text-sm ml-3">Share Conversation</Text>
+                <Text className="text-white font-medium text-sm ml-3">Share conversation</Text>
               </Pressable>
 
-              <Pressable 
-                className="flex-row items-center bg-red-500/10 border border-red-500/20 p-4 rounded-xl active:bg-red-500/20 mt-2"
+              <Pressable
+                className="flex-row items-center justify-center py-4 rounded-xl active:opacity-60 mt-1"
                 onPress={() => {
                   Alert.alert(
                     'Clear Chat',
@@ -547,8 +557,7 @@ export default function CoachScreen() {
                   );
                 }}
               >
-                <Trash2 size={20} color="#ef4444" />
-                <Text className="text-red-400 font-semibold text-sm ml-3">Clear Chat History</Text>
+                <Text className="font-medium text-sm" style={{ color: 'rgba(248,113,113,0.75)' }}>Clear chat history</Text>
               </Pressable>
             </View>
           </View>
@@ -590,7 +599,7 @@ const markdownStyles = StyleSheet.create({
   },
   table: {
     borderWidth: 1,
-    borderColor: '#404040',
+    borderColor: '#313138',
     borderRadius: 8,
     marginTop: 12,
     marginBottom: 12,
@@ -598,19 +607,19 @@ const markdownStyles = StyleSheet.create({
   th: {
     fontWeight: '700',
     color: '#ffffff',
-    backgroundColor: '#262626',
+    backgroundColor: '#26262c',
     padding: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#404040',
+    borderBottomColor: '#313138',
   },
   td: {
     padding: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#404040',
+    borderBottomColor: '#313138',
   },
   code_inline: {
-    backgroundColor: '#262626',
-    color: '#a78bfa',
+    backgroundColor: '#26262c',
+    color: '#818cf8',
     borderRadius: 4,
     paddingHorizontal: 4,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',

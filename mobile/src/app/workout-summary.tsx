@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, Pressable } from '@/tw';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
 import Animated, {
   FadeInDown,
@@ -85,21 +86,21 @@ function StatCard({
     <View
       style={{
         flex: 1,
-        backgroundColor: '#111',
+        backgroundColor: '#1c1c21',
         borderWidth: 1,
-        borderColor: accent ? 'rgba(251,191,36,0.25)' : '#1e1e1e',
-        borderRadius: 16,
+        borderColor: accent ? 'rgba(251,191,36,0.3)' : '#313138',
+        borderRadius: 12,
         padding: 14,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
         {icon}
-        <Text style={{ color: '#6b7280', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 }}>
+        <Text style={{ color: '#71717a', fontSize: 12, fontWeight: '500' }}>
           {label}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
-        <Text style={{ color: accent ? '#fbbf24' : '#ffffff', fontWeight: '900', fontSize: 24, letterSpacing: -0.5 }}>
+        <Text style={{ color: accent ? '#fbbf24' : '#ffffff', fontWeight: '700', fontSize: 24, letterSpacing: -0.5 }}>
           {value}
         </Text>
         {unit && (
@@ -113,6 +114,7 @@ function StatCard({
 // ── Main Screen ────────────────────────────────────────────────
 export default function WorkoutSummaryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { lastCompletedWorkout, setLastCompletedWorkout } = useAppStore();
 
   const summary = lastCompletedWorkout;
@@ -125,9 +127,9 @@ export default function WorkoutSummaryScreen() {
   if (!summary) {
     return (
       <View style={{ flex: 1, backgroundColor: '#09090b', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#6b7280', fontWeight: '600' }}>No workout data</Text>
+        <Text style={{ color: '#71717a', fontWeight: '500' }}>No workout data</Text>
         <Pressable onPress={handleDone} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#10b981', fontWeight: '700' }}>Go Back</Text>
+          <Text style={{ color: '#818cf8', fontWeight: '600' }}>Go back</Text>
         </Pressable>
       </View>
     );
@@ -141,7 +143,7 @@ export default function WorkoutSummaryScreen() {
     <View style={{ flex: 1, backgroundColor: '#09090b' }}>
 
       {/* ── Celebration Header ── */}
-      <View style={{ paddingTop: 72, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 24 }}>
+      <View style={{ paddingTop: insets.top + 32, paddingBottom: 28, alignItems: 'center', paddingHorizontal: 24 }}>
         {/* Icon with pulse */}
         <Animated.View entering={ZoomIn.duration(500).springify().damping(12)} style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
           <PulseRing />
@@ -162,10 +164,10 @@ export default function WorkoutSummaryScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ alignItems: 'center' }}>
-          <Text style={{ color: '#10b981', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 8 }}>
-            Workout Complete
+          <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600', marginBottom: 8 }}>
+            Workout complete
           </Text>
-          <Text style={{ color: '#ffffff', fontSize: 26, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 }}>
+          <Text style={{ color: '#ffffff', fontSize: 26, fontWeight: '700', textAlign: 'center', letterSpacing: -0.5 }}>
             {summary.name}
           </Text>
           <Text style={{ color: '#6b7280', fontSize: 13, fontWeight: '500', marginTop: 4 }}>
@@ -192,13 +194,13 @@ export default function WorkoutSummaryScreen() {
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <StatCard
             icon={<Target size={14} color="#6b7280" />}
-            label="Sets Done"
+            label="Sets done"
             value={`${summary.setsCompleted}/${summary.totalSets}`}
           />
           <StatCard
             icon={<Trophy size={14} color={summary.prs > 0 ? '#fbbf24' : '#6b7280'} />}
             label="PRs"
-            value={summary.prs > 0 ? `${summary.prs} 🏆` : '—'}
+            value={summary.prs > 0 ? `${summary.prs}` : '—'}
             accent={summary.prs > 0}
           />
         </View>
@@ -210,8 +212,8 @@ export default function WorkoutSummaryScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
       >
-        <Text style={{ color: '#6b7280', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10 }}>
-          Exercise Breakdown
+        <Text style={{ color: '#a1a1aa', fontSize: 15, fontWeight: '600', marginBottom: 12 }}>
+          Exercise breakdown
         </Text>
 
         {summary.exercises.map((ex, i) => {
@@ -221,10 +223,10 @@ export default function WorkoutSummaryScreen() {
               key={i}
               entering={FadeInDown.delay(400 + i * 70).duration(300)}
               style={{
-                backgroundColor: '#111',
+                backgroundColor: '#1c1c21',
                 borderWidth: 1,
-                borderColor: '#1e1e1e',
-                borderRadius: 14,
+                borderColor: '#313138',
+                borderRadius: 12,
                 padding: 14,
                 marginBottom: 8,
               }}
@@ -280,10 +282,10 @@ export default function WorkoutSummaryScreen() {
       >
         <Pressable
           onPress={handleDone}
-          style={{ backgroundColor: '#10b981', paddingVertical: 15, borderRadius: 14, alignItems: 'center' }}
+          style={{ backgroundColor: '#10b981', paddingVertical: 15, borderRadius: 12, alignItems: 'center' }}
           className="active:opacity-80"
         >
-          <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 15, letterSpacing: 0.3 }}>
+          <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 15 }}>
             Done
           </Text>
         </Pressable>

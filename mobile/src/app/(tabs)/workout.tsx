@@ -4,6 +4,7 @@ import { Plus, CheckCircle2, Search, Trash2, Timer, Play, MoreHorizontal, Sparkl
 
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
@@ -67,6 +68,7 @@ function StatChip({ label, value, accent = false }: { label: string; value: stri
 // ─────────────────────────────────────────────────────────────
 export default function WorkoutScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { routines, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
 
   const [activeRoutine, setActiveRoutine] = useState<any | null>(null);
@@ -281,7 +283,7 @@ export default function WorkoutScreen() {
       <View style={{ flex: 1, backgroundColor: '#09090b' }}>
 
         {/* ── Header ── */}
-        <View style={{ paddingTop: 52, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ paddingTop: insets.top + 20, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text className="text-3xl font-bold text-white tracking-tight">Workouts</Text>
           <Pressable
             onPress={() => router.push('/routine/new')}
@@ -461,7 +463,7 @@ export default function WorkoutScreen() {
     <View style={{ flex: 1, backgroundColor: '#09090b' }}>
 
       {/* ── Sticky Header ── */}
-      <View style={{ paddingTop: 52, paddingBottom: 12, paddingHorizontal: 20, backgroundColor: '#09090b', borderBottomWidth: 1, borderBottomColor: '#141414' }}>
+      <View style={{ paddingTop: insets.top + 20, paddingBottom: 12, paddingHorizontal: 20, backgroundColor: '#09090b', borderBottomWidth: 1, borderBottomColor: '#141414' }}>
         {/* Title row */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <View style={{ flex: 1, paddingRight: 16 }}>

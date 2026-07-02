@@ -96,20 +96,20 @@ export default function CreatePostModal({ visible, onClose, onPost }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-neutral-950">
+      <View className="flex-1 bg-[#09090b]">
 
         {/* ── Top Bar ── */}
         <View className="pt-12 pb-3 px-5 flex-row justify-between items-center border-b border-neutral-900">
           <Pressable onPress={onClose} className="p-1 active:opacity-60">
             <X size={22} color="#a1a1aa" />
           </Pressable>
-          <Text className="text-white font-extrabold text-base">New Post</Text>
+          <Text className="text-white font-bold text-base">New post</Text>
           <Pressable
             onPress={handlePost}
             disabled={!canPost}
-            className={`px-5 py-2 rounded-full ${canPost ? 'bg-indigo-600 active:bg-indigo-700 shadow-[0_4px_12px_rgba(79,70,229,0.35)]' : 'bg-neutral-800'}`}
+            className={`px-5 py-2 rounded-full ${canPost ? 'bg-indigo-600 active:opacity-80' : 'bg-neutral-800'}`}
           >
-            <Text className={`font-extrabold text-sm ${canPost ? 'text-white' : 'text-neutral-600'}`}>Share</Text>
+            <Text className={`font-semibold text-sm ${canPost ? 'text-white' : 'text-neutral-600'}`}>Share</Text>
           </Pressable>
         </View>
 
@@ -144,7 +144,7 @@ export default function CreatePostModal({ visible, onClose, onPost }: Props) {
                     </View>
                     {i === 0 && (
                       <View className="absolute bottom-1 left-1 bg-black/70 rounded px-1">
-                        <Text className="text-white text-[8px] font-bold">COVER</Text>
+                        <Text className="text-white text-[9px] font-semibold">Cover</Text>
                       </View>
                     )}
                   </Pressable>
@@ -174,7 +174,7 @@ export default function CreatePostModal({ visible, onClose, onPost }: Props) {
                     <Images size={28} color="#818cf8" />
                   </View>
                   <View className="items-center">
-                    <Text className="text-white font-extrabold text-sm">From Device</Text>
+                    <Text className="text-white font-bold text-sm">From device</Text>
                     <Text className="text-neutral-500 text-xs mt-0.5">Pick up to 5 photos</Text>
                   </View>
                 </Pressable>
@@ -185,10 +185,10 @@ export default function CreatePostModal({ visible, onClose, onPost }: Props) {
                   className="flex-1 py-8 items-center justify-center gap-3 active:bg-neutral-900"
                 >
                   <View className="w-14 h-14 rounded-2xl bg-neutral-800 border border-neutral-700 items-center justify-center">
-                    <Text className="text-neutral-300 font-black text-xl">Aa</Text>
+                    <Text className="text-neutral-300 font-bold text-xl">Aa</Text>
                   </View>
                   <View className="items-center">
-                    <Text className="text-white font-extrabold text-sm">Text Only</Text>
+                    <Text className="text-white font-bold text-sm">Text only</Text>
                     <Text className="text-neutral-500 text-xs mt-0.5">No image</Text>
                   </View>
                 </Pressable>

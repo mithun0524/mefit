@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Plus, Search } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import StoriesRow from '@/components/community/StoriesRow';
 import PostCard from '@/components/community/PostCard';
@@ -11,6 +12,7 @@ import CreatePostModal from '@/components/community/CreatePostModal';
 
 export default function FeedScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile, feed, addFeedPost } = useAppStore();
   const { name, avatarImage } = profile;
   const [createVisible, setCreateVisible] = useState(false);
@@ -25,17 +27,17 @@ export default function FeedScreen() {
   };
 
   return (
-    <View className="flex-1 bg-neutral-950">
+    <View className="flex-1 bg-[#09090b]">
       {/* Header */}
-      <View className="pt-10 pb-3 px-5 bg-neutral-950 border-b border-neutral-900 z-10 flex-row items-center justify-between">
-        <Text className="text-2xl font-extrabold text-white tracking-tight">Community</Text>
+      <View style={{ paddingTop: insets.top + 20 }} className="pb-3 px-5 bg-[#09090b] border-b border-neutral-900 z-10 flex-row items-center justify-between">
+        <Text className="text-2xl font-bold text-white tracking-tight">Community</Text>
         <View className="flex-row items-center gap-3">
-          <Pressable onPress={() => router.push('/search')} className="w-9 h-9 bg-neutral-900 border border-neutral-800 rounded-full items-center justify-center active:bg-neutral-800">
+          <Pressable onPress={() => router.push('/search')} className="w-9 h-9 bg-neutral-900 border border-neutral-800 rounded-full items-center justify-center active:opacity-70">
             <Search size={16} color="#a1a1aa" />
           </Pressable>
           <Pressable
             onPress={() => setCreateVisible(true)}
-            className="w-9 h-9 bg-indigo-600 rounded-full items-center justify-center shadow-[0_4px_12px_rgba(79,70,229,0.4)] active:bg-indigo-700"
+            className="w-9 h-9 bg-indigo-600 rounded-full items-center justify-center active:opacity-80"
           >
             <Plus size={18} color="white" />
           </Pressable>
@@ -49,7 +51,7 @@ export default function FeedScreen() {
         {/* Quick post bar */}
         <Pressable
           onPress={() => setCreateVisible(true)}
-          className="flex-row items-center px-4 py-3 border-b border-neutral-900/40 bg-neutral-950 active:bg-neutral-900/30"
+          className="flex-row items-center px-5 py-3 border-b border-neutral-900/40 bg-[#09090b] active:bg-neutral-900/30"
         >
           <View className="w-9 h-9 rounded-full overflow-hidden border border-indigo-500/30 bg-indigo-500/20 items-center justify-center mr-3">
             {avatarImage

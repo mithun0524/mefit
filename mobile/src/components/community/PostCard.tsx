@@ -97,7 +97,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
   const isCarousel = post.images.length > 1;
 
   return (
-    <View className="bg-neutral-900 border border-neutral-800/70 rounded-2xl mb-4 overflow-hidden">
+    <View className="bg-[#1c1c21] border border-[#313138] rounded-xl mb-4 overflow-hidden">
 
       {/* ── Header ── */}
       <View className="flex-row items-center px-4 py-3">
@@ -149,7 +149,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
           <Animated.View
             style={[{ position: 'absolute', alignSelf: 'center', top: '30%', zIndex: 20, pointerEvents: 'none' as any }, heartStyle]}
           >
-            <Heart size={80} color="#f97316" fill="#f97316" />
+            <Heart size={80} color="#ef4444" fill="#ef4444" />
           </Animated.View>
 
           {/* Carousel dots */}
@@ -178,15 +178,15 @@ export default function PostCard({ post }: { post: FeedPost }) {
         {/* Like */}
         <Pressable onPress={handleLike} className="flex-row items-center gap-1.5 active:opacity-70">
           <Animated.View style={likeStyle}>
-            <Heart size={22} color={liked ? '#f97316' : '#a1a1aa'} fill={liked ? '#f97316' : 'transparent'} />
+            <Heart size={22} color={liked ? '#ef4444' : '#a1a1aa'} fill={liked ? '#ef4444' : 'transparent'} />
           </Animated.View>
-          <Text className={`text-sm font-bold ${liked ? 'text-orange-400' : 'text-neutral-400'}`}>{likesCount}</Text>
+          <Text className={`text-sm font-semibold ${liked ? 'text-red-400' : 'text-neutral-400'}`}>{likesCount}</Text>
         </Pressable>
 
         {/* Comment */}
         <Pressable onPress={() => setCommentsVisible(true)} className="flex-row items-center gap-1.5 active:opacity-70">
           <MessageCircle size={22} color="#a1a1aa" />
-          <Text className="text-neutral-400 text-sm font-bold">{post.commentCount}</Text>
+          <Text className="text-neutral-400 text-sm font-semibold">{post.commentCount}</Text>
         </Pressable>
 
         {/* Share */}
@@ -221,9 +221,9 @@ export default function PostCard({ post }: { post: FeedPost }) {
 
         {/* Workout tag */}
         {post.workout && (
-          <Pressable className="flex-row items-center mt-2 bg-neutral-950 border border-neutral-800/60 self-start px-3 py-1.5 rounded-full gap-1.5 active:opacity-75">
+          <Pressable className="flex-row items-center mt-2 bg-[#09090b] border border-[#313138] self-start px-3 py-1.5 rounded-full gap-1.5 active:opacity-75">
             <Dumbbell size={12} color="#818cf8" />
-            <Text className="text-indigo-400 font-bold text-xs">{post.workout}</Text>
+            <Text className="text-indigo-400 font-semibold text-xs">{post.workout}</Text>
             {post.volume && <Text className="text-neutral-500 text-xs">· {post.volume}</Text>}
             {post.prs ? <Award size={12} color="#fb923c" /> : null}
           </Pressable>

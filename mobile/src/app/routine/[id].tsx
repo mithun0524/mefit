@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, TextInput } from '@/tw';
 import { KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Modal } from 'react-native';
 import { X, Search, Plus, Dumbbell, ChevronLeft, Trash2, GripVertical, ChevronDown, Clock, Link2 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   FadeInDown, LinearTransition, Easing,
   useSharedValue, useAnimatedStyle, withTiming, runOnJS,
@@ -324,6 +325,7 @@ function ExerciseCard({
 
 export default function RoutineEditorScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
   const isCreate = id === 'new';
   const { routines, addRoutine, updateRoutine, deleteRoutine } = useAppStore();
@@ -536,7 +538,7 @@ export default function RoutineEditorScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#09090b' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
       {/* ── Header ── */}
-      <View style={{ paddingHorizontal: 20 }} className="pt-14 pb-4 flex-row items-center justify-between">
+      <View style={{ paddingHorizontal: 20, paddingTop: insets.top + 20 }} className="pb-4 flex-row items-center justify-between">
         <Pressable onPress={goBack} className="flex-row items-center active:opacity-60 py-1 -ml-1">
           <ChevronLeft size={22} color="#a1a1aa" />
           <Text className="text-neutral-400 font-medium text-[15px]">Back</Text>

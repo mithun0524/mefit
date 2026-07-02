@@ -58,8 +58,8 @@ function CommentItem({
           <Text className="text-neutral-300 text-sm leading-relaxed">{comment.text}</Text>
           <View className="flex-row items-center gap-4 mt-2">
             <Pressable onPress={toggleLike} className="flex-row items-center gap-1 active:opacity-70">
-              <Heart size={13} color={liked ? '#f97316' : '#71717a'} fill={liked ? '#f97316' : 'transparent'} />
-              <Text className={`text-[11px] font-semibold ${liked ? 'text-orange-400' : 'text-neutral-500'}`}>{likes}</Text>
+              <Heart size={13} color={liked ? '#ef4444' : '#71717a'} fill={liked ? '#ef4444' : 'transparent'} />
+              <Text className={`text-[11px] font-semibold ${liked ? 'text-red-400' : 'text-neutral-500'}`}>{likes}</Text>
             </Pressable>
             <Pressable onPress={() => onReply(comment.id, comment.author)} className="active:opacity-70">
               <Text className="text-neutral-500 text-[11px] font-semibold">Reply</Text>
@@ -126,15 +126,15 @@ export default function CommentSheet({ visible, onClose, postId, initialComments
     >
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
-        <View className="bg-neutral-900 border-t border-neutral-800 rounded-t-2xl" style={{ height: SCREEN_HEIGHT * 0.7 }}>
+        <View className="bg-[#1c1c21] border-t border-[#313138] rounded-t-2xl" style={{ height: SCREEN_HEIGHT * 0.7 }}>
           <View className="w-10 h-1 bg-neutral-700 rounded-full self-center mt-4 mb-4" />
 
           {/* Header */}
           <View className="flex-row justify-between items-center px-5 mb-3">
-            <Text className="text-white font-extrabold text-base">
+            <Text className="text-white font-bold text-base">
               Comments {comments.length > 0 && <Text className="text-neutral-500">({comments.length})</Text>}
             </Text>
-            <Pressable onPress={onClose} className="w-7 h-7 rounded-full bg-neutral-800 items-center justify-center active:bg-neutral-700">
+            <Pressable onPress={onClose} className="w-7 h-7 rounded-full bg-neutral-800 items-center justify-center active:opacity-70">
               <X size={16} color="#a1a1aa" />
             </Pressable>
           </View>
@@ -148,8 +148,8 @@ export default function CommentSheet({ visible, onClose, postId, initialComments
             {comments.length === 0 ? (
               <View className="items-center justify-center py-12">
                 <MessageCircle size={36} color="#3f3f46" />
-                <Text className="text-neutral-500 font-bold text-sm mt-3">No comments yet</Text>
-                <Text className="text-neutral-600 text-xs mt-1">Be the first to comment</Text>
+                <Text className="text-neutral-400 font-semibold text-sm mt-3">No comments yet</Text>
+                <Text className="text-neutral-500 text-xs mt-1">Be the first to comment</Text>
               </View>
             ) : (
               comments.map(comment => (
