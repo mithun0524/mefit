@@ -35,6 +35,8 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const setAuthenticated = useAppStore((state) => state.setAuthenticated);
+  const updateProfile = useAppStore((state) => state.updateProfile);
+  const answers = useRef<Record<string, string>>({});
   const [history, setHistory] = useState<{ role: string; content: string }[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
   const [input, setInput] = useState('');
@@ -46,6 +48,8 @@ export default function OnboardingScreen() {
 
   const handleSend = (text: string = input) => {
     if (!text.trim()) return;
+
+    answers.current[currentStep.key] = text.trim();
 
     const newHistory = [
       ...history,
@@ -73,6 +77,13 @@ export default function OnboardingScreen() {
   };
 
   const handleFinish = () => {
+    const a = answers.current;
+    updateProfile({
+      goal: a.goal,
+      trainingDays: a.frequency,
+      equipment: a.equipment,
+      experience: a.level,
+    });
     setAuthenticated(true);
     router.replace('/');
   };

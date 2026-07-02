@@ -16,6 +16,10 @@ export interface ProfileState {
   weight: string;
   height: string;
   openAIApiKey: string;
+  goal?: string;          // from onboarding
+  trainingDays?: string;
+  equipment?: string;
+  experience?: string;
 }
 
 export interface LoggedSet { weight: number; reps: number; completed: boolean }

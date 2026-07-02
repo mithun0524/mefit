@@ -24,8 +24,15 @@ export function buildCoachContext(profile: ProfileState, workouts: WorkoutRecord
   const recent = workouts.slice(0, 5)
     .map(w => `- ${w.name} (${w.date}, ${w.volumeLbs} ${profile.unit}, ${w.prs} PR) — ${w.exercises}`)
     .join('\n') || '- none logged yet';
+  const prefs = [
+    profile.goal && `Goal: ${profile.goal}`,
+    profile.experience && `Experience: ${profile.experience}`,
+    profile.trainingDays && `Trains: ${profile.trainingDays}`,
+    profile.equipment && `Equipment: ${profile.equipment}`,
+  ].filter(Boolean).join('. ');
   return [
     `Athlete: ${profile.name}. Units: ${profile.unit}. Weight: ${profile.weight}. Height: ${profile.height}.`,
+    prefs ? `Preferences — ${prefs}.` : '',
     `Training readiness today: ${readiness}/100 (${readinessLabel(readiness)}).`,
     `Estimated muscle recovery: ${recoveryLines}.`,
     `This week: ${stats.daysThisWeek} days trained, ${stats.thisWeekK}k ${profile.unit} volume, ${stats.streak}-day streak, ${stats.prsThisMonth} PRs this month.`,
