@@ -104,6 +104,7 @@ export interface AppState {
   routines: Routine[];
   feed: FeedPost[];
   lastCompletedWorkout: CompletedWorkoutSummary | null;
+  energyToday: { date: string; value: 'low' | 'good' | 'high' } | null;
 
   // Actions
   setAuthenticated: (authenticated: boolean) => void;
@@ -116,6 +117,7 @@ export interface AppState {
   deleteRoutine: (id: string) => void;
   duplicateRoutine: (id: string) => void;
   setLastCompletedWorkout: (summary: CompletedWorkoutSummary | null) => void;
+  setEnergyToday: (energyToday: { date: string; value: 'low' | 'good' | 'high' } | null) => void;
 }
 
 // --- Initial Data ---
@@ -282,6 +284,7 @@ export const useAppStore = create<AppState>()(
       routines: INITIAL_ROUTINES,
       feed: INITIAL_FEED,
       lastCompletedWorkout: null,
+      energyToday: null,
 
       setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
 
@@ -336,6 +339,7 @@ export const useAppStore = create<AppState>()(
       }),
 
       setLastCompletedWorkout: (summary) => set({ lastCompletedWorkout: summary }),
+      setEnergyToday: (energyToday) => set({ energyToday }),
     }),
     {
       name: 'silly-galileo-storage-v5',

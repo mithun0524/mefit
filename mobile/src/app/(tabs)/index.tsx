@@ -1,163 +1,232 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, Image } from '@/tw';
-import { Flame, Activity, TrendingUp, CalendarDays, Sparkles, ArrowRight } from 'lucide-react-native';
+import { Flame, Activity, TrendingUp, Sparkles, ArrowRight, Trophy } from 'lucide-react-native';
 import MuscleHeatmap from '@/components/MuscleHeatmap';
+import ReadinessRing from '@/components/ReadinessRing';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
+import { MUSCLE_RECOVERY, computeReadiness, readinessLabel, readinessColor, type Energy } from '@/lib/readiness';
+import { deriveDashboardStats, todayKey } from '@/lib/stats';
+
+const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
+  { key: 'low', label: 'Low' },
+  { key: 'good', label: 'Good' },
+  { key: 'high', label: 'High' },
+];
+
+const WEEK_GOAL = 7;
+const CARD = { backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 16, padding: 20 } as const;
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { profile } = useAppStore();
+  const insets = useSafeAreaInsets();
+  const { profile, workouts, routines, energyToday, setEnergyToday } = useAppStore();
   const { name, avatarImage } = profile;
+
+  // Persisted, date-stamped energy check (resets daily, survives reload).
+  const tk = todayKey();
+  const energy: Energy = energyToday && energyToday.date === tk ? energyToday.value : null;
+  const setEnergy = (v: Energy) => setEnergyToday(v ? { date: tk, value: v } : null);
+
+  const stats = useMemo(() => deriveDashboardStats(workouts), [workouts]);
+
+  const readiness = useMemo(() => computeReadiness(MUSCLE_RECOVERY, energy), [energy]);
+  const rColor = readinessColor(readiness);
+  const rLabel = readinessLabel(readiness);
+  const weakest = useMemo(() => [...MUSCLE_RECOVERY].sort((a, b) => a.recovery - b.recovery)[0], []);
+  const readinessNote = readiness >= 75 ? 'All major groups recovered' : `${weakest.name} still fatigued (${weakest.recovery}%)`;
+
+  const maxVol = Math.max(...stats.weeklyK, 1);
+  const minVol = Math.min(...stats.weeklyK);
+  const topRoutine = routines[0]?.name ?? 'a routine';
 
   const getInitials = (fullName: string) => {
     const parts = fullName.trim().split(' ');
-    return parts.length >= 2
-      ? (parts[0][0] + parts[1][0]).toUpperCase()
-      : fullName.substring(0, 2).toUpperCase();
+    return parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : fullName.substring(0, 2).toUpperCase();
   };
 
   return (
-    <View className="flex-1 bg-neutral-950">
-      {/* Sleek SaaS Header */}
-      <View className="pt-10 pb-4 px-6 bg-neutral-950 border-b border-neutral-900/60 flex-row justify-between items-center z-10">
+    <View className="flex-1" style={{ backgroundColor: '#09090b' }}>
+      {/* Header */}
+      <View style={{ paddingTop: insets.top + 20, paddingBottom: 10, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717' }} className="flex-row justify-between items-center z-10">
         <View>
-          <Text className="text-3xl font-extrabold text-white tracking-tight">Overview</Text>
-          <Text className="text-neutral-500 font-semibold text-xs mt-0.5">Ready to crush it today?</Text>
+          <Text className="text-2xl font-bold text-white tracking-tight">Overview</Text>
+          <Text className="text-neutral-500 text-[13px] mt-0.5">Ready to crush it today?</Text>
         </View>
-        <Pressable onPress={() => router.push('/(tabs)/profile')} className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-500/60 bg-indigo-500/20 items-center justify-center active:opacity-80">
-          {avatarImage ? (
-            <Image source={{ uri: avatarImage }} className="w-full h-full" resizeMode="cover" />
-          ) : (
-            <Text className="text-indigo-400 font-black text-sm">{getInitials(name)}</Text>
+        <View className="flex-row items-center gap-3">
+          {stats.streak > 0 && (
+            <View className="flex-row items-center bg-orange-500/10 px-2.5 py-1.5 rounded-full">
+              <Flame size={13} color="#fb923c" />
+              <Text className="text-orange-400 font-semibold text-[13px] ml-1">{stats.streak}</Text>
+            </View>
           )}
-        </Pressable>
+          <Pressable onPress={() => router.push('/(tabs)/profile')} className="w-10 h-10 rounded-full overflow-hidden border border-indigo-500/40 bg-indigo-500/15 items-center justify-center active:opacity-80">
+            {avatarImage ? (
+              <Image source={{ uri: avatarImage }} className="w-full h-full" resizeMode="cover" />
+            ) : (
+              <Text className="text-indigo-400 font-semibold text-sm">{getInitials(name)}</Text>
+            )}
+          </Pressable>
+        </View>
       </View>
 
-      <ScrollView className="flex-1 px-4 pt-6" showsVerticalScrollIndicator={false}>
-        {/* Proactive AI Coach Insight Card */}
-        <Animated.View
-          entering={FadeInDown.delay(50).duration(500).springify()}
-          className="bg-neutral-900 rounded-xl p-5 mb-6 border border-neutral-800 shadow-sm relative overflow-hidden"
-        >
-          <View className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
-          
+      <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
+
+        {/* ① Training readiness — hero */}
+        <Animated.View entering={FadeInDown.duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
+          <View className="flex-row items-center">
+            <ReadinessRing score={readiness} color={rColor} size={88} stroke={7} />
+            <View className="flex-1 ml-5">
+              <Text className="text-neutral-500 text-[12px] mb-1">Training readiness</Text>
+              <Text style={{ color: rColor }} className="text-xl font-bold tracking-tight">{rLabel}</Text>
+              <Text className="text-neutral-500 text-[12px] mt-1">{readinessNote}</Text>
+            </View>
+          </View>
+
+          <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#26262c' }}>
+            <Text className="text-neutral-400 text-[13px] mb-2.5">How's your energy today?</Text>
+            <View className="flex-row gap-2.5">
+              {ENERGY_OPTIONS.map(opt => {
+                const active = energy === opt.key;
+                return (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => setEnergy(active ? null : opt.key)}
+                    style={{ backgroundColor: active ? '#4f46e5' : '#26262c' }}
+                    className="flex-1 py-2.5 rounded-lg items-center active:opacity-70"
+                  >
+                    <Text style={{ color: active ? '#ffffff' : '#a1a1aa' }} className="font-medium text-[13px]">{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ② AI coach insight — the action */}
+        <Animated.View entering={FadeInDown.delay(80).duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
           <View className="flex-row items-center mb-3">
-            <View className="w-7 h-7 bg-indigo-500/20 rounded-full items-center justify-center border border-indigo-500/30 mr-2">
+            <View className="w-7 h-7 bg-indigo-500/15 rounded-full items-center justify-center mr-2">
               <Sparkles size={14} color="#818cf8" />
             </View>
-            <Text className="text-indigo-400 font-bold text-xs uppercase tracking-wider">Coach AI Insight</Text>
+            <Text className="text-indigo-400 font-medium text-[13px]">AI coach insight</Text>
           </View>
-          
-          <Text className="text-white text-lg font-bold mb-1 tracking-tight">Muscle Group Recommendation</Text>
-          <Text className="text-neutral-400 text-xs font-medium mb-4 leading-relaxed">
-            Your hamstrings and quads are fully recovered (100%). We recommend running your <Text className="text-white font-bold">Leg Day Annihilation</Text> routine today.
+
+          <Text className="text-white text-lg font-bold mb-1 tracking-tight">Muscle group recommendation</Text>
+          <Text className="text-neutral-400 text-[13px] mb-4 leading-relaxed">
+            You're at <Text style={{ color: rColor }} className="font-semibold">{readiness}% readiness</Text>. Chest and shoulders are fresh — a good day for your <Text className="text-white font-semibold">{topRoutine}</Text> routine. Legs are still recovering.
           </Text>
 
           <View className="flex-row gap-3">
-            <Pressable 
-              onPress={() => router.push('/(tabs)/workout')}
-              className="bg-indigo-600 px-5 py-2.5 rounded-xl flex-row items-center justify-center active:bg-indigo-700 shadow-sm"
-            >
-              <Text className="text-white font-bold text-xs tracking-wide mr-1.5 uppercase">Start Routine</Text>
-              <ArrowRight size={12} color="white" />
+            <Pressable onPress={() => router.push('/(tabs)/workout')} style={{ backgroundColor: '#4f46e5' }} className="px-5 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-80">
+              <Text className="text-white font-semibold text-[13px] mr-1.5">Start routine</Text>
+              <ArrowRight size={13} color="white" />
             </Pressable>
-            
-            <Pressable 
-              onPress={() => router.push('/(tabs)/coach')}
-              className="bg-neutral-950 border border-neutral-800 px-4 py-2.5 rounded-xl flex-row items-center justify-center active:bg-neutral-900"
-            >
-              <Text className="text-neutral-300 font-bold text-xs">Ask Why</Text>
+            <Pressable onPress={() => router.push('/(tabs)/coach')} style={{ borderWidth: 1, borderColor: '#313138' }} className="px-4 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-70">
+              <Text className="text-neutral-300 font-medium text-[13px]">Ask why</Text>
             </Pressable>
           </View>
         </Animated.View>
 
-        {/* Weekly Streak Card */}
-        <Animated.View 
-          entering={FadeInDown.delay(150).duration(500).springify()}
-          className="bg-neutral-900 rounded-xl p-5 mb-6 border border-neutral-800 shadow-sm"
-        >
+        {/* ③ Muscle recovery */}
+        <Animated.View entering={FadeInDown.delay(160).duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
+          <View className="flex-row justify-between items-center mb-4">
+            <View>
+              <Text className="text-white font-bold text-base tracking-tight">Muscle recovery</Text>
+              <Text className="text-neutral-500 text-[12px] mt-0.5">Estimated from training volume</Text>
+            </View>
+            <Activity size={18} color="#818cf8" />
+          </View>
+
+          <MuscleHeatmap />
+
+          <View className="flex-row justify-between mt-5 pt-4" style={{ borderTopWidth: 1, borderTopColor: '#26262c' }}>
+            <View className="flex-row items-center"><View className="w-2 h-2 rounded-full bg-green-500 mr-2" /><Text className="text-[11px] text-neutral-400">Fresh</Text></View>
+            <View className="flex-row items-center"><View className="w-2 h-2 rounded-full bg-yellow-500 mr-2" /><Text className="text-[11px] text-neutral-400">Recovering</Text></View>
+            <View className="flex-row items-center"><View className="w-2 h-2 rounded-full bg-red-500 mr-2" /><Text className="text-[11px] text-neutral-400">Fatigued</Text></View>
+          </View>
+        </Animated.View>
+
+        {/* ④ Streak — this week's consistency (real) */}
+        <Animated.View entering={FadeInDown.delay(240).duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-white font-bold text-base tracking-tight">Weekly Streak</Text>
-            <View className="flex-row items-center bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
-              <Flame size={14} color="#fb923c" className="mr-1" />
-              <Text className="text-orange-400 font-black text-xs">3 days</Text>
+            <Text className="text-white font-bold text-base tracking-tight">Weekly streak</Text>
+            <View className="flex-row items-center bg-orange-500/10 px-3 py-1 rounded-full">
+              <Flame size={13} color="#fb923c" />
+              <Text className="text-orange-400 font-semibold text-xs ml-1">{stats.streak} {stats.streak === 1 ? 'day' : 'days'}</Text>
             </View>
           </View>
-          <View className="flex-row justify-between">
+          <View className="flex-row justify-between mb-4">
             {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
-              const isActive = idx === 1 || idx === 3 || idx === 4;
+              const isActive = stats.weekDots[idx];
               return (
-                <View key={idx} className="items-center">
-                  <View className={`w-9 h-9 rounded-full items-center justify-center mb-1 border ${
-                    isActive ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-neutral-950 border-neutral-800'
-                  }`}>
-                    <Text className={`font-bold text-xs ${isActive ? 'text-white' : 'text-neutral-500'}`}>{day}</Text>
-                  </View>
+                <View
+                  key={idx}
+                  style={isActive ? { backgroundColor: '#4f46e5' } : { backgroundColor: '#09090b', borderWidth: 1, borderColor: '#313138' }}
+                  className="w-9 h-9 rounded-full items-center justify-center"
+                >
+                  <Text className={`font-semibold text-xs ${isActive ? 'text-white' : 'text-neutral-500'}`}>{day}</Text>
                 </View>
               );
             })}
           </View>
+          <View style={{ height: 6, borderRadius: 4, backgroundColor: '#26262c', overflow: 'hidden' }}>
+            <View style={{ height: 6, borderRadius: 4, width: `${(stats.daysThisWeek / WEEK_GOAL) * 100}%`, backgroundColor: '#4f46e5' }} />
+          </View>
+          <Text className="text-neutral-500 text-[12px] mt-2.5">
+            {stats.daysThisWeek >= WEEK_GOAL
+              ? 'Perfect week — every day trained 🎉'
+              : `${stats.daysThisWeek}/${WEEK_GOAL} days this week`}
+          </Text>
         </Animated.View>
 
-        {/* Recovery Heatmap Card */}
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(500).springify()}
-          className="bg-neutral-900 rounded-xl p-5 mb-6 border border-neutral-800 shadow-sm"
-        >
-          <View className="flex-row justify-between items-center mb-4">
-            <View>
-              <Text className="text-white font-bold text-base tracking-tight">Muscle Recovery State</Text>
-              <Text className="text-neutral-500 text-[10px] font-semibold mt-0.5">Estimated based on training volume</Text>
-            </View>
-            <Activity size={18} color="#818cf8" />
-          </View>
-          
-          <MuscleHeatmap />
-          
-          <View className="flex-row justify-between mt-6 border-t border-neutral-800/50 pt-4">
+        {/* ⑤ Progress — reflective (real) */}
+        <Animated.View entering={FadeInDown.delay(320).duration(500).springify()} style={CARD}>
+          <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full bg-green-500 mr-2" />
-              <Text className="text-[10px] text-neutral-400 font-bold">Fresh (100%)</Text>
-            </View>
-            <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full bg-yellow-500 mr-2" />
-              <Text className="text-[10px] text-neutral-400 font-bold">Recovering (50%)</Text>
-            </View>
-            <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full bg-red-500 mr-2" />
-              <Text className="text-[10px] text-neutral-400 font-bold">Fatigued (0%)</Text>
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Bento Grid Stats */}
-        <View className="flex-row gap-4 mb-8">
-          <Animated.View 
-            entering={FadeInDown.delay(300).duration(500).springify()}
-            className="flex-1 bg-neutral-900 rounded-xl p-4 border border-neutral-800 shadow-sm"
-          >
-            <View className="w-8 h-8 bg-indigo-500/10 rounded-lg items-center justify-center mb-3">
               <TrendingUp size={16} color="#818cf8" />
+              <Text className="text-white font-bold text-base tracking-tight ml-2">Progress</Text>
             </View>
-            <Text className="text-neutral-500 text-[9px] font-bold tracking-wider uppercase mb-0.5">Weekly Volume</Text>
-            <Text className="text-xl font-bold text-white">12.4k lbs</Text>
-            <Text className="text-[10px] text-indigo-400 font-semibold mt-1">+8% vs last week</Text>
-          </Animated.View>
+            <Text className="text-neutral-500 text-[12px]">Last 4 weeks</Text>
+          </View>
 
-          <Animated.View 
-            entering={FadeInDown.delay(400).duration(500).springify()}
-            className="flex-1 bg-neutral-900 rounded-xl p-4 border border-neutral-800 shadow-sm"
-          >
-            <View className="w-8 h-8 bg-violet-500/10 rounded-lg items-center justify-center mb-3">
-              <CalendarDays size={16} color="#a78bfa" />
+          {stats.hasData ? (
+            <>
+              <View className="flex-row items-end justify-between" style={{ height: 84 }}>
+                {stats.weeklyK.map((v, i) => {
+                  const last = i === stats.weeklyK.length - 1;
+                  const h = 16 + ((v - minVol) / ((maxVol - minVol) || 1)) * 52;
+                  return (
+                    <View key={i} className="flex-1 items-center" style={{ marginHorizontal: 6 }}>
+                      {last && <Text style={{ color: '#a5b4fc' }} className="text-[11px] font-semibold mb-1.5">{v}k</Text>}
+                      <View style={{ width: '100%', height: h, borderRadius: 8, backgroundColor: last ? '#4f46e5' : '#33333b' }} />
+                      <Text className="text-neutral-600 text-[10px] mt-2">{`W${i + 1}`}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+
+              <View className="flex-row items-center justify-between mt-5 pt-4" style={{ borderTopWidth: 1, borderTopColor: '#26262c' }}>
+                <View>
+                  <Text className="text-white font-bold text-lg">{stats.thisWeekK}k lbs</Text>
+                  <Text className="text-indigo-400 text-[12px] font-medium mt-0.5">{stats.deltaPct >= 0 ? '+' : ''}{stats.deltaPct}% vs last week</Text>
+                </View>
+                {stats.prsThisMonth > 0 && (
+                  <View className="flex-row items-center px-3 py-1.5 rounded-lg" style={{ backgroundColor: 'rgba(251,191,36,0.1)' }}>
+                    <Trophy size={13} color="#fbbf24" />
+                    <Text style={{ color: '#fbbf24' }} className="font-semibold text-[12px] ml-1.5">{stats.prsThisMonth} PR{stats.prsThisMonth === 1 ? '' : 's'} this month</Text>
+                  </View>
+                )}
+              </View>
+            </>
+          ) : (
+            <View className="items-center py-6">
+              <Text className="text-neutral-500 text-[13px]">Log your first workout to see your trend</Text>
             </View>
-            <Text className="text-neutral-500 text-[9px] font-bold tracking-wider uppercase mb-0.5">Workouts Completed</Text>
-            <Text className="text-xl font-bold text-white">14</Text>
-            <Text className="text-[10px] text-neutral-500 font-semibold mt-1">This month</Text>
-          </Animated.View>
-        </View>
+          )}
+        </Animated.View>
       </ScrollView>
     </View>
   );
