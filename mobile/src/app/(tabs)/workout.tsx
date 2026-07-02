@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
+import { exerciseBests, detectPRs } from '@/lib/history';
 
 // Match the editor's bodyweight detection so old routines (no stored flag) still show BW.
 const BODYWEIGHT_RE = /pull[-\s]?up|chin[-\s]?up|push[-\s]?up|\bdip\b|plank|sit[-\s]?up|crunch|muscle[-\s]?up|pistol|burpee|leg\s?raise|mountain\s?climber|hanging|bodyweight/i;
@@ -69,7 +70,7 @@ function StatChip({ label, value, accent = false }: { label: string; value: stri
 export default function WorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { routines, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
+  const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
 
   const [activeRoutine, setActiveRoutine] = useState<any | null>(null);
   const [activeExercises, setActiveExercises] = useState<any[]>([]);
@@ -135,6 +136,7 @@ export default function WorkoutScreen() {
       restSeconds: ex.restSeconds,
       repRange: ex.repRange,
       supersetGroup: ex.supersetGroup,
+      muscles: ex.muscles,
       sets: (ex.sets?.length ? ex.sets : [{ reps: 10, weight: 0 }]).map((s: any) => ({
         reps: s.reps ?? 10,
         repsMax: s.repsMax,
@@ -164,29 +166,25 @@ export default function WorkoutScreen() {
     let totalVol = 0;
     let setsCompleted = 0;
     let totalSets = 0;
-    let prs = 0;
-    const exerciseSummaries: Array<{ name: string; sets: Array<{ weight: number; reps: number; completed: boolean }> }> = [];
 
-    activeExercises.forEach(ex => {
+    // Structured per-exercise log — carries muscles + sets for real PRs & recovery.
+    const loggedExercises = activeExercises.map(ex => {
       const sets = ex.sets.map((s: any) => ({
         weight: Number(s.weight) || 0,
         reps: Number(s.reps) || 0,
         completed: Boolean(s.completed),
       }));
       totalSets += sets.length;
-      sets.forEach(s => {
-        if (s.completed) {
-          setsCompleted++;
-          totalVol += s.weight * s.reps;
-          if (s.weight > 0 && s.weight >= 225) prs++; // simple PR heuristic
-        }
-      });
-      exerciseSummaries.push({ name: ex.name, sets });
+      sets.forEach(s => { if (s.completed) { setsCompleted++; totalVol += s.weight * s.reps; } });
+      return { name: ex.name, muscles: ex.muscles, sets };
     });
+
+    // Real PRs: sets that beat this exercise's prior all-time best (estimated 1RM).
+    const prs = detectPRs(exerciseBests(workouts), loggedExercises).count;
 
     const names = activeExercises.map(e => e.name);
 
-    // Save to workout history
+    // Save to workout history (structured + summary string)
     addWorkout({
       name: activeRoutine?.name || 'Custom Workout',
       date: 'Just now',
@@ -194,6 +192,7 @@ export default function WorkoutScreen() {
       volumeLbs: totalVol,
       prs,
       exercises: names.join(', '),
+      loggedExercises,
     });
 
     // Store summary for summary screen
@@ -204,12 +203,12 @@ export default function WorkoutScreen() {
       setsCompleted,
       totalSets,
       prs,
-      exercises: exerciseSummaries,
+      exercises: loggedExercises,
     });
 
     endWorkout();
     router.push('/workout-summary' as any);
-  }, [activeExercises, workoutStartTime, activeRoutine, addWorkout, setLastCompletedWorkout, endWorkout, router]);
+  }, [activeExercises, workoutStartTime, activeRoutine, workouts, addWorkout, setLastCompletedWorkout, endWorkout, router]);
 
   const toggleSetComplete = useCallback((eIdx: number, sIdx: number) => {
     setActiveExercises(prev => {
@@ -256,6 +255,7 @@ export default function WorkoutScreen() {
       id: Date.now(),
       name: ex.name,
       isBarbell: ex.equipment.some(e => e.toLowerCase().includes('barbell')) || /squat|deadlift|bench|press/i.test(ex.name),
+      muscles: ex.muscles?.slice(0, 3),
       sets: [{ reps: 10, weight: 0, completed: false }, { reps: 10, weight: 0, completed: false }, { reps: 10, weight: 0, completed: false }],
     }]);
     setExerciseQuery('');

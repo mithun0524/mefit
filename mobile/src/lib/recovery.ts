@@ -35,17 +35,39 @@ export function exerciseMuscles(name: string): MuscleGroup[] {
   return [...found];
 }
 
+// Map an anatomical muscle name (e.g. from the catalog: "Quadriceps femoris") to a group.
+const GROUP_KEYWORDS: [RegExp, MuscleGroup][] = [
+  [/quad|hamstring|glute|calf|calv|adductor|abductor|\bleg/i, 'Legs'],
+  [/pec|chest/i, 'Chest'],
+  [/lat|trap|rhomboid|erector|spinae|\bback/i, 'Back'],
+  [/delt|shoulder/i, 'Shoulders'],
+  [/bicep|tricep|brachii|forearm|\barm/i, 'Arms'],
+  [/abdom|oblique|\babs?\b|core/i, 'Core'],
+];
+function muscleToGroup(m: string): MuscleGroup | null {
+  for (const [re, g] of GROUP_KEYWORDS) if (re.test(m)) return g;
+  return null;
+}
+
 // Estimated recovery per muscle group from the real workout log.
 // 0% = just trained (fatigued) → 100% = fully recovered / rested.
 export function computeMuscleRecovery(workouts: WorkoutRecord[], now: number = Date.now()): MuscleRecovery[] {
   // Latest timestamp each group was trained.
   const lastTrained: Partial<Record<MuscleGroup, number>> = {};
+  const mark = (g: MuscleGroup, ts: number) => { if (!lastTrained[g] || ts > lastTrained[g]!) lastTrained[g] = ts; };
+
   for (const w of workouts) {
-    const names = (w.exercises || '').split(',');
-    for (const n of names) {
-      for (const g of exerciseMuscles(n)) {
-        if (!lastTrained[g] || w.timestamp > lastTrained[g]!) lastTrained[g] = w.timestamp;
+    if (w.loggedExercises?.length) {
+      // Structured history: use each exercise's real muscles, mapped to a group.
+      for (const ex of w.loggedExercises) {
+        const groups = new Set<MuscleGroup>();
+        (ex.muscles ?? []).forEach(m => { const g = muscleToGroup(m); if (g) groups.add(g); });
+        if (groups.size === 0) exerciseMuscles(ex.name).forEach(g => groups.add(g));
+        groups.forEach(g => mark(g, w.timestamp));
       }
+    } else {
+      // Fallback (seed / legacy): keyword-map the exercise-name string.
+      (w.exercises || '').split(',').forEach(n => exerciseMuscles(n).forEach(g => mark(g, w.timestamp)));
     }
   }
 

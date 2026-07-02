@@ -18,6 +18,9 @@ export interface ProfileState {
   openAIApiKey: string;
 }
 
+export interface LoggedSet { weight: number; reps: number; completed: boolean }
+export interface LoggedExercise { name: string; muscles?: string[]; sets: LoggedSet[] }
+
 export interface WorkoutRecord {
   id: string | number;
   name: string;
@@ -26,7 +29,8 @@ export interface WorkoutRecord {
   duration: string;
   volumeLbs: number;
   prs: number;
-  exercises: string;
+  exercises: string;                    // human-readable summary (kept for cards/search)
+  loggedExercises?: LoggedExercise[];    // structured per-exercise history (real PRs, recovery)
 }
 
 export interface CompletedWorkoutSummary {
