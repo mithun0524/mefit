@@ -12,9 +12,16 @@ const ENERGY_ADJUST: Record<Exclude<Energy, null>, number> = {
   high: 10,
 };
 
-export function computeReadiness(muscles: MuscleRecovery[], energy: Energy): number {
+export function computeReadiness(
+  muscles: MuscleRecovery[],
+  energy: Energy,
+  health?: { sleepScore?: number | null } | null,
+): number {
   if (!muscles.length) return 0;
-  const base = muscles.reduce((sum, m) => sum + m.recovery, 0) / muscles.length;
+  let base = muscles.reduce((sum, m) => sum + m.recovery, 0) / muscles.length;
+  // Sleep score (0-100) is directly comparable — blend it in when a device provides it.
+  // (HRV / resting-HR need a personal baseline, so they're scored at device-integration time.)
+  if (health && health.sleepScore != null) base = base * 0.7 + health.sleepScore * 0.3;
   const adj = energy ? ENERGY_ADJUST[energy] : 0;
   return Math.max(0, Math.min(100, Math.round(base + adj)));
 }

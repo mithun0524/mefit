@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Image } from '@/tw';
 import { Flame, Activity, TrendingUp, Sparkles, ArrowRight, Trophy } from 'lucide-react-native';
 import MuscleHeatmap from '@/components/MuscleHeatmap';
@@ -10,6 +10,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { computeReadiness, readinessLabel, readinessColor, type Energy } from '@/lib/readiness';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { deriveDashboardStats, todayKey } from '@/lib/stats';
+import { getHealthSignals, hasHealthData, type HealthSignals } from '@/lib/health';
 
 const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
   { key: 'low', label: 'Low' },
@@ -33,9 +34,13 @@ export default function DashboardScreen() {
 
   const stats = useMemo(() => deriveDashboardStats(workouts), [workouts]);
 
+  // Device health signals (HRV/sleep) — null on web, real on a device build.
+  const [health, setHealth] = useState<HealthSignals | null>(null);
+  useEffect(() => { getHealthSignals().then(setHealth); }, []);
+
   // Real muscle recovery from the workout log → feeds readiness + the AI insight.
   const recovery = useMemo(() => computeMuscleRecovery(workouts), [workouts]);
-  const readiness = useMemo(() => computeReadiness(recovery, energy), [recovery, energy]);
+  const readiness = useMemo(() => computeReadiness(recovery, energy, health), [recovery, energy, health]);
   const rColor = readinessColor(readiness);
   const rLabel = readinessLabel(readiness);
   const sorted = useMemo(() => [...recovery].sort((a, b) => a.recovery - b.recovery), [recovery]);
@@ -90,7 +95,15 @@ export default function DashboardScreen() {
           <View className="flex-row items-center">
             <ReadinessRing score={readiness} color={rColor} size={88} stroke={7} />
             <View className="flex-1 ml-5">
-              <Text className="text-neutral-500 text-[12px] mb-1">Training readiness</Text>
+              <View className="flex-row items-center mb-1">
+                <Text className="text-neutral-500 text-[12px]">Training readiness</Text>
+                {hasHealthData(health) && (
+                  <View className="flex-row items-center ml-2">
+                    <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1" />
+                    <Text className="text-emerald-500 text-[11px] font-medium">Synced</Text>
+                  </View>
+                )}
+              </View>
               <Text style={{ color: rColor }} className="text-xl font-bold tracking-tight">{rLabel}</Text>
               <Text className="text-neutral-500 text-[12px] mt-1">{readinessNote}</Text>
             </View>
