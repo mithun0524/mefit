@@ -7,6 +7,7 @@ import Animated, { FadeInDown, SlideInUp, SlideOutDown } from 'react-native-rean
 import { Modal, Share } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '@/store/useAppStore';
+import ExerciseProgress from '@/components/ExerciseProgress';
 
 // Consistency grid mock data
 const HEATMAP_DATA = [
@@ -283,6 +284,9 @@ export default function ProfileScreen() {
 
           {activeTab === 'analytics' && (
             <Animated.View entering={FadeInDown.duration(300)}>
+              {/* Real strength progression from logged history */}
+              <ExerciseProgress workouts={workouts} />
+
               {/* Consistency Heatmap */}
               <View style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-5 mb-4">
                 <View className="flex-row justify-between items-center mb-4">
