@@ -11,7 +11,7 @@ import { computeReadiness, readinessLabel, readinessColor, type Energy } from '@
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { deriveDashboardStats, todayKey } from '@/lib/stats';
 import { getHealthSignals, hasHealthData, type HealthSignals } from '@/lib/health';
-import { useSlideIn } from '@/lib/useSlideIn';
+import { useTabSlide } from '@/lib/useSlideIn';
 
 const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
   { key: 'low', label: 'Low' },
@@ -27,7 +27,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { profile, workouts, routines, energyToday, setEnergyToday } = useAppStore();
   const { name, avatarImage } = profile;
-  const slide = useSlideIn();
+  const slide = useTabSlide(0);
 
   // Persisted, date-stamped energy check (resets daily, survives reload).
   const tk = todayKey();

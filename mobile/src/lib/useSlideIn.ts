@@ -5,18 +5,28 @@ import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reani
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Slide a screen in from the right each time it gains focus.
-// Tab switches don't animate on web, so this gives every tab a consistent
-// page transition without remounting (state is preserved).
-export function useSlideIn(duration = 280) {
+// Tracks the last-focused tab index so we know which way navigation moved.
+let lastTabIndex = 0;
+
+/**
+ * Direction-aware tab transition. Pass the tab's position in the bar (0-based).
+ * Moving to a tab on the RIGHT → the page slides in from the right.
+ * Moving to a tab on the LEFT → it slides in from the left.
+ * No remount, so screen state is preserved.
+ */
+export function useTabSlide(tabIndex: number, duration = 240) {
   const x = useSharedValue(0);
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   useFocusEffect(
     useCallback(() => {
-      x.value = SCREEN_WIDTH;
+      const from = lastTabIndex;
+      lastTabIndex = tabIndex;
+      if (from === tabIndex) return undefined; // same tab / first mount → no slide
+      const dir = tabIndex > from ? 1 : -1; // right = +, left = -
+      x.value = dir * SCREEN_WIDTH;
       x.value = withTiming(0, { duration });
       return undefined;
-    }, [duration]),
+    }, [tabIndex, duration]),
   );
   return style;
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Image, ScrollView } from '@/tw';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useSlideIn } from '@/lib/useSlideIn';
+import { useTabSlide } from '@/lib/useSlideIn';
 import { Plus, Search, Users } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
@@ -14,7 +14,7 @@ import CreatePostModal from '@/components/community/CreatePostModal';
 export default function FeedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const slide = useSlideIn();
+  const slide = useTabSlide(2);
   const { profile, feed, addFeedPost } = useAppStore();
   const { name, avatarImage } = profile;
   const [createVisible, setCreateVisible] = useState(false);

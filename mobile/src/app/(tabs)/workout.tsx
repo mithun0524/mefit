@@ -5,12 +5,12 @@ import { Plus, CheckCircle2, Search, Trash2, Timer, Play, MoreHorizontal, Sparkl
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
 import { exerciseBests, detectPRs } from '@/lib/history';
 import * as Haptics from 'expo-haptics';
-import { useSlideIn } from '@/lib/useSlideIn';
+import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
 const haptic = (fn: () => Promise<any>) => { if (Platform.OS !== 'web') fn().catch(() => {}); };
@@ -75,7 +75,7 @@ function StatChip({ label, value, accent = false }: { label: string; value: stri
 export default function WorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const slide = useSlideIn();
+  const slide = useTabSlide(1);
   const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
 
   const [activeRoutine, setActiveRoutine] = useState<any | null>(null);

@@ -10,6 +10,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '@/store/useAppStore';
 import { useUI } from '@/lib/ui';
+import { useTabSlide } from '@/lib/useSlideIn';
 import ExerciseProgress from '@/components/ExerciseProgress';
 
 // Consistency grid mock data
@@ -33,13 +34,8 @@ const PRESET_AVATARS = [
 export default function ProfileScreen() {
   const router = useRouter();
 
-  // Slide the profile in from the right whenever it's opened (avatar link or tab).
-  const enterX = useSharedValue(0);
-  const enterStyle = useAnimatedStyle(() => ({ transform: [{ translateX: enterX.value }] }));
-  useFocusEffect(useCallback(() => {
-    enterX.value = SCREEN_WIDTH;
-    enterX.value = withTiming(0, { duration: 280 });
-  }, []));
+  // Direction-aware tab transition (profile is the last tab, index 4).
+  const enterStyle = useTabSlide(4);
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'activity' | 'analytics' | 'routines'>('activity');
 

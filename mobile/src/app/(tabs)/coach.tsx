@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert } from 'react-native';
 import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { useSlideIn } from '@/lib/useSlideIn';
+import { useTabSlide } from '@/lib/useSlideIn';
 import Markdown from 'react-native-markdown-display';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -59,7 +59,7 @@ const getAIReply = (prompt: string, userName: string, prefUnit: string): string 
 
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
-  const slide = useSlideIn();
+  const slide = useTabSlide(3);
   const { profile, workouts, settings } = useAppStore();
   const { name, unit } = profile;
   const userName = name.split(' ')[0] || 'Athlete';
