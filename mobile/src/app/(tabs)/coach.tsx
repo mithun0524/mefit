@@ -58,7 +58,7 @@ const getAIReply = (prompt: string, userName: string, prefUnit: string): string 
 
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
-  const { profile, workouts } = useAppStore();
+  const { profile, workouts, settings } = useAppStore();
   const { name, unit } = profile;
   const userName = name.split(' ')[0] || 'Athlete';
   const initialQ = useLocalSearchParams<{ q?: string }>().q;
@@ -227,6 +227,7 @@ export default function CoachScreen() {
           history,
           userText: text.trim(),
           attachments: currentAttachments,
+          style: settings.coachingStyle,
         });
       } else {
         // No API key set → graceful templated fallback.

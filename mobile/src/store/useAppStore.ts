@@ -22,6 +22,19 @@ export interface ProfileState {
   experience?: string;
 }
 
+export type CoachingStyle = 'supportive' | 'balanced' | 'direct';
+
+export interface AppSettings {
+  coachingStyle: CoachingStyle;
+  restSound: boolean;
+  keepAwake: boolean;
+  warmupInStats: boolean;
+  rpeLogging: boolean;
+  prAlerts: boolean;
+  workoutReminders: boolean;
+  firstDayMonday: boolean;
+}
+
 export interface LoggedSet { weight: number; reps: number; completed: boolean }
 export interface LoggedExercise { name: string; muscles?: string[]; sets: LoggedSet[] }
 
@@ -115,6 +128,7 @@ export interface AppState {
   feed: FeedPost[];
   lastCompletedWorkout: CompletedWorkoutSummary | null;
   energyToday: { date: string; value: 'low' | 'good' | 'high' } | null;
+  settings: AppSettings;
 
   // Actions
   setAuthenticated: (authenticated: boolean) => void;
@@ -130,7 +144,19 @@ export interface AppState {
   duplicateRoutine: (id: string) => void;
   setLastCompletedWorkout: (summary: CompletedWorkoutSummary | null) => void;
   setEnergyToday: (energyToday: { date: string; value: 'low' | 'good' | 'high' } | null) => void;
+  updateSettings: (updates: Partial<AppSettings>) => void;
 }
+
+const INITIAL_SETTINGS: AppSettings = {
+  coachingStyle: 'balanced',
+  restSound: true,
+  keepAwake: true,
+  warmupInStats: true,
+  rpeLogging: false,
+  prAlerts: true,
+  workoutReminders: false,
+  firstDayMonday: true,
+};
 
 // --- Initial Data ---
 
@@ -297,6 +323,7 @@ export const useAppStore = create<AppState>()(
       feed: INITIAL_FEED,
       lastCompletedWorkout: null,
       energyToday: null,
+      settings: INITIAL_SETTINGS,
 
       setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
 
@@ -358,6 +385,7 @@ export const useAppStore = create<AppState>()(
 
       setLastCompletedWorkout: (summary) => set({ lastCompletedWorkout: summary }),
       setEnergyToday: (energyToday) => set({ energyToday }),
+      updateSettings: (updates) => set((state) => ({ settings: { ...state.settings, ...updates } })),
     }),
     {
       name: 'silly-galileo-storage-v5',

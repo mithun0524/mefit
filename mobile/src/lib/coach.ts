@@ -1,4 +1,4 @@
-import type { WorkoutRecord, ProfileState } from '@/store/useAppStore';
+import type { WorkoutRecord, ProfileState, CoachingStyle } from '@/store/useAppStore';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
 import { deriveDashboardStats } from '@/lib/stats';
@@ -40,7 +40,14 @@ export function buildCoachContext(profile: ProfileState, workouts: WorkoutRecord
   ].join('\n');
 }
 
-const SYSTEM = (context: string) => `You are Coach AI, an expert strength & conditioning coach living inside a workout-tracking app.
+const TONE: Record<CoachingStyle, string> = {
+  supportive: 'Tone: warm, encouraging and positive — celebrate effort.',
+  balanced: 'Tone: practical and encouraging.',
+  direct: 'Tone: blunt and no-nonsense — skip pleasantries, get to the point.',
+};
+
+const SYSTEM = (context: string, style: CoachingStyle = 'balanced') => `You are Coach AI, an expert strength & conditioning coach living inside a workout-tracking app.
+${TONE[style]}
 Answer directly and keep your internal reasoning brief — do NOT over-analyze before responding.
 Be concise, practical and encouraging. Use markdown (bold, short lists, small tables) when it helps.
 Ground EVERY answer in the athlete's real data below — reference their actual readiness, muscle recovery, and recent sessions. Never invent numbers that aren't in the data. If readiness is low or a muscle group is fatigued, factor that into your advice. Keep replies under ~150 words unless asked for a full plan.
@@ -60,8 +67,9 @@ export async function getCoachReply(opts: {
   history: ChatTurn[];
   userText: string;
   attachments: Attachment[];
+  style?: CoachingStyle;
 }): Promise<string> {
-  const { profile, workouts, history, userText, attachments } = opts;
+  const { profile, workouts, history, userText, attachments, style } = opts;
   const apiKey = resolveKey(profile);
   const images = attachments.filter(a => a.type === 'image');
 
@@ -70,7 +78,7 @@ export async function getCoachReply(opts: {
     return "I can't view images on the current coach model — it's text-only. Describe what you'd like feedback on (e.g. your form cue or the exercise) and I'll help.";
   }
 
-  const messages: any[] = [{ role: 'system', content: SYSTEM(buildCoachContext(profile, workouts)) }];
+  const messages: any[] = [{ role: 'system', content: SYSTEM(buildCoachContext(profile, workouts), style) }];
   history.slice(-8).forEach(m => messages.push({ role: m.sender === 'ai' ? 'assistant' : 'user', content: m.text }));
   messages.push({ role: 'user', content: userText });
 
