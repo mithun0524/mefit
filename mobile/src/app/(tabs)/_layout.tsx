@@ -12,6 +12,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        animation: 'shift', // both screens render during the switch (direction-aware)
         tabBarShowLabel: false,
         tabBarActiveTintColor: '#818cf8', // Indigo-400 — single accent
         tabBarInactiveTintColor: '#52525b', // Zinc-600 — muted inactive

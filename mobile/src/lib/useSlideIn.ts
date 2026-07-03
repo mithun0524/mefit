@@ -15,6 +15,14 @@ let lastTabIndex = 0;
  * No remount, so screen state is preserved.
  */
 export function useTabSlide(tabIndex: number, duration = 240) {
+  // Tab switching is now animated natively by the Tabs navigator (animation: 'shift'),
+  // which keeps BOTH screens on-screen during the transition — like the settings overlay.
+  // This per-screen slide is disabled so the two don't fight; the arg is kept for callers.
+  void tabIndex; void duration;
+  return {};
+}
+
+function _useTabSlideLegacy(tabIndex: number, duration = 240) {
   const x = useSharedValue(0);
   // elev: 1 while the page is travelling, 0 once settled — drives the edge shadow
   // so the incoming screen reads as a card sliding OVER, then flattens flush.
