@@ -10,6 +10,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
 import { exerciseBests, detectPRs } from '@/lib/history';
 import * as Haptics from 'expo-haptics';
+import { useSlideIn } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
 const haptic = (fn: () => Promise<any>) => { if (Platform.OS !== 'web') fn().catch(() => {}); };
@@ -74,6 +75,7 @@ function StatChip({ label, value, accent = false }: { label: string; value: stri
 export default function WorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const slide = useSlideIn();
   const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
 
   const [activeRoutine, setActiveRoutine] = useState<any | null>(null);
@@ -286,7 +288,7 @@ export default function WorkoutScreen() {
   // ═══════════════════════════════════════════════════════════
   if (!activeRoutine) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#09090b' }}>
+      <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
 
         {/* ── Header ── */}
         <View style={{ paddingTop: insets.top + 20, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -454,7 +456,7 @@ export default function WorkoutScreen() {
             ))}
           </View>
         </ScrollView>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -466,7 +468,7 @@ export default function WorkoutScreen() {
   const pctDone = workoutStats.pct;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#09090b' }}>
+    <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
 
       {/* ── Sticky Header ── */}
       <View style={{ paddingTop: insets.top + 20, paddingBottom: 12, paddingHorizontal: 20, backgroundColor: '#09090b', borderBottomWidth: 1, borderBottomColor: '#141414' }}>
@@ -783,7 +785,7 @@ export default function WorkoutScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 

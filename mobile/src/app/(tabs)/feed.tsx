@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, Image, ScrollView } from '@/tw';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSlideIn } from '@/lib/useSlideIn';
 import { Plus, Search, Users } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,7 @@ import CreatePostModal from '@/components/community/CreatePostModal';
 export default function FeedScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const slide = useSlideIn();
   const { profile, feed, addFeedPost } = useAppStore();
   const { name, avatarImage } = profile;
   const [createVisible, setCreateVisible] = useState(false);
@@ -27,7 +29,7 @@ export default function FeedScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#09090b]">
+    <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 20 }} className="pb-3 px-5 bg-[#09090b] border-b border-neutral-900 z-10 flex-row items-center justify-between">
         <Text className="text-2xl font-bold text-white tracking-tight">Community</Text>
@@ -91,6 +93,6 @@ export default function FeedScreen() {
         onClose={() => setCreateVisible(false)}
         onPost={handleNewPost}
       />
-    </View>
+    </Animated.View>
   );
 }

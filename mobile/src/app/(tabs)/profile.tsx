@@ -49,7 +49,6 @@ export default function ProfileScreen() {
 
   // --- Modal Visibility States ---
   const [editVisible, setEditVisible] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
 
   // --- Temporary Modal Editor States ---
   const [editName, setEditName] = useState(name);
@@ -518,109 +517,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* --- APP SETTINGS BOTTOM SHEET MODAL --- */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={settingsVisible}
-        onRequestClose={() => setSettingsVisible(false)}
-      >
-        <View className="flex-1 justify-end bg-black/60">
-          <Pressable className="flex-1" onPress={() => setSettingsVisible(false)} />
-          <View style={{ backgroundColor: '#1c1c21', borderTopWidth: 1, borderTopColor: '#313138' }} className="rounded-t-3xl p-5 h-[65%]">
-            <View style={{ backgroundColor: '#313138' }} className="w-10 h-1 rounded-full self-center mb-5" />
-
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white font-bold text-xl">App settings</Text>
-              <Pressable
-                onPress={() => setSettingsVisible(false)}
-                style={{ backgroundColor: '#26262c' }}
-                className="w-8 h-8 rounded-full items-center justify-center active:opacity-70"
-              >
-                <X size={16} color="#a1a1aa" />
-              </Pressable>
-            </View>
-
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              {/* Units Selection - Segmented Toggle */}
-              <View style={{ backgroundColor: '#09090b', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-4 mb-4">
-                <Text className="text-white font-semibold text-sm mb-1">Workout units</Text>
-                <Text className="text-neutral-500 text-[13px] mb-3">Converts all weights and volume displays instantly.</Text>
-
-                <View style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }} className="flex-row rounded-lg p-1">
-                  <Pressable
-                    onPress={() => updateProfile({ unit: 'lbs' })}
-                    style={unit === 'lbs' ? { backgroundColor: '#4f46e5' } : undefined}
-                    className="flex-1 py-2 rounded-md items-center justify-center"
-                  >
-                    <Text className="text-white font-semibold text-[13px]">Pounds (Lbs)</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => updateProfile({ unit: 'kgs' })}
-                    style={unit === 'kgs' ? { backgroundColor: '#4f46e5' } : undefined}
-                    className="flex-1 py-2 rounded-md items-center justify-center"
-                  >
-                    <Text className="text-white font-semibold text-[13px]">Kilograms (Kgs)</Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Privacy Setting Toggle */}
-              <View style={{ backgroundColor: '#09090b', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-4 mb-4 flex-row items-center justify-between">
-                <View className="flex-1 mr-4">
-                  <Text className="text-white font-semibold text-sm mb-0.5">Private profile</Text>
-                  <Text className="text-neutral-500 text-[13px]">Only approved followers can view your workouts & logs.</Text>
-                </View>
-                <Pressable
-                  onPress={() => updateProfile({ isPrivate: !isPrivate })}
-                  style={{ backgroundColor: isPrivate ? '#4f46e5' : '#313138' }}
-                  className="w-12 h-6.5 rounded-full px-1 justify-center"
-                >
-                  <View className={`w-5 h-5 rounded-full bg-white transition-all ${isPrivate ? 'translate-x-[20px]' : 'translate-x-0'}`} />
-                </Pressable>
-              </View>
-
-              {/* Physical Metrics */}
-              <View style={{ backgroundColor: '#09090b', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-4 mb-6">
-                <Text className="text-white font-semibold text-sm mb-3">Physique details</Text>
-                <View className="flex-row gap-4">
-                  <View className="flex-1">
-                    <Text className="text-neutral-400 text-[13px] font-medium mb-1.5">Weight</Text>
-                    <TextInput
-                      style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
-                      className="rounded-lg px-3 py-2 text-white font-medium text-[13px] text-center"
-                      value={weight}
-                      onChangeText={(val) => updateProfile({ weight: val })}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-neutral-400 text-[13px] font-medium mb-1.5">Height</Text>
-                    <TextInput
-                      style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
-                      className="rounded-lg px-3 py-2 text-white font-medium text-[13px] text-center"
-                      value={height}
-                      onChangeText={(val) => updateProfile({ height: val })}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Log Out — demoted text link */}
-              <Pressable
-                onPress={() => {
-                  setSettingsVisible(false);
-                  setAuthenticated(false);
-                  router.replace('/auth/login');
-                }}
-                className="items-center py-4 mb-8 active:opacity-60"
-              >
-                <Text style={{ color: 'rgba(248,113,113,0.75)' }} className="font-medium text-[13px]">Log out</Text>
-              </Pressable>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
 
       {/* --- CUSTOM FLOATING TOAST NOTIFICATION --- */}
       {toastVisible && (

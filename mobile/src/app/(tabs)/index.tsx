@@ -11,6 +11,7 @@ import { computeReadiness, readinessLabel, readinessColor, type Energy } from '@
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { deriveDashboardStats, todayKey } from '@/lib/stats';
 import { getHealthSignals, hasHealthData, type HealthSignals } from '@/lib/health';
+import { useSlideIn } from '@/lib/useSlideIn';
 
 const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
   { key: 'low', label: 'Low' },
@@ -26,6 +27,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const { profile, workouts, routines, energyToday, setEnergyToday } = useAppStore();
   const { name, avatarImage } = profile;
+  const slide = useSlideIn();
 
   // Persisted, date-stamped energy check (resets daily, survives reload).
   const tk = todayKey();
@@ -64,7 +66,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View className="flex-1" style={{ backgroundColor: '#09090b' }}>
+    <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
       {/* Header */}
       <View style={{ paddingTop: insets.top + 20, paddingBottom: 10, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717' }} className="flex-row justify-between items-center z-10">
         <View>
@@ -256,6 +258,6 @@ export default function DashboardScreen() {
           )}
         </Animated.View>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
