@@ -37,7 +37,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth/login" />
           <Stack.Screen name="auth/signup" />
           <Stack.Screen name="onboarding" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="settings" />
+          <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="workout-summary" options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
         </Stack>
       </SafeAreaProvider>
