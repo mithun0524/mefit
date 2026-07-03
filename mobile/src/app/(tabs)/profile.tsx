@@ -7,6 +7,7 @@ import Animated, { FadeInDown, SlideInUp, SlideOutDown } from 'react-native-rean
 import { Modal, Share } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '@/store/useAppStore';
+import { useUI } from '@/lib/ui';
 import ExerciseProgress from '@/components/ExerciseProgress';
 
 // Consistency grid mock data
@@ -142,7 +143,7 @@ export default function ProfileScreen() {
       >
         <Text className="text-3xl font-bold text-white tracking-tight">Profile</Text>
         <Pressable
-          onPress={() => router.push('/settings')}
+          onPress={() => useUI.getState().openSettings()}
           style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
           className="w-10 h-10 rounded-xl items-center justify-center active:opacity-70"
         >

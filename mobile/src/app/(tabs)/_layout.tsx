@@ -1,9 +1,14 @@
 import React from 'react';
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Dumbbell, User, MessageCircle, Users } from 'lucide-react-native';
+import { useUI } from '@/lib/ui';
+import SettingsPanel from '@/components/SettingsPanel';
 
 export default function TabLayout() {
+  const { settingsOpen, closeSettings } = useUI();
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -56,5 +61,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    {settingsOpen && <SettingsPanel onClose={closeSettings} />}
+    </View>
   );
 }

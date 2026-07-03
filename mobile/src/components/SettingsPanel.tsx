@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable, TextInput } from '@/tw';
 import { Switch, Alert, Share, Platform } from 'react-native';
 import { ChevronLeft, ChevronRight, Activity, Bell, Sparkles, Lock, Download, Info, Dumbbell, Ruler, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, type CoachingStyle } from '@/store/useAppStore';
 
@@ -12,23 +13,15 @@ const DIVIDER = '#26262c';
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View className="mb-6">
-      <Text className="text-neutral-500 text-[12px] font-medium mb-2 ml-1">{title}</Text>
+      {title ? <Text className="text-neutral-500 text-[12px] font-medium mb-2 ml-1">{title}</Text> : null}
       <View style={CARD} className="overflow-hidden">{children}</View>
-    </View>
-  );
-}
-
-function Row({ children, first }: { children: React.ReactNode; first?: boolean }) {
-  return (
-    <View style={first ? undefined : { borderTopWidth: 1, borderTopColor: DIVIDER }} className="px-4 py-3.5 flex-row items-center justify-between">
-      {children}
     </View>
   );
 }
 
 function ToggleRow({ icon, label, sub, value, onChange, first }: any) {
   return (
-    <Row first={first}>
+    <View style={first ? undefined : { borderTopWidth: 1, borderTopColor: DIVIDER }} className="px-4 py-3.5 flex-row items-center justify-between">
       <View className="flex-row items-center flex-1 pr-3">
         {icon}
         <View className="ml-3 flex-1">
@@ -37,7 +30,7 @@ function ToggleRow({ icon, label, sub, value, onChange, first }: any) {
         </View>
       </View>
       <Switch value={value} onValueChange={onChange} trackColor={{ false: '#3a3a42', true: '#4f46e5' }} thumbColor="#ffffff" ios_backgroundColor="#3a3a42" />
-    </Row>
+    </View>
   );
 }
 
@@ -71,22 +64,20 @@ function Segmented({ options, value, onChange }: { options: { key: string; label
   );
 }
 
-export default function SettingsScreen() {
+export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, workouts, settings, updateProfile, updateSettings, setAuthenticated } = useAppStore();
   const set = (patch: any) => updateSettings(patch);
 
-  const goBack = () => { if (router.canGoBack()) router.back(); else router.replace('/(tabs)/profile'); };
-
   const logOut = () => Alert.alert('Log out', 'Log out of your account?', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Log out', style: 'destructive', onPress: () => { setAuthenticated(false); router.replace('/'); } },
+    { text: 'Log out', style: 'destructive', onPress: () => { onClose(); setAuthenticated(false); router.replace('/'); } },
   ]);
 
   const deleteAccount = () => Alert.alert('Delete account', 'This permanently removes your data. This cannot be undone.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => { setAuthenticated(false); router.replace('/'); } },
+    { text: 'Delete', style: 'destructive', onPress: () => { onClose(); setAuthenticated(false); router.replace('/'); } },
   ]);
 
   const exportCsv = async () => {
@@ -103,10 +94,14 @@ export default function SettingsScreen() {
   const healthStatus = Platform.OS === 'web' ? 'Not on web' : 'Connect';
 
   return (
-    <View className="flex-1" style={{ backgroundColor: '#09090b' }}>
+    <Animated.View
+      entering={SlideInRight.duration(280)}
+      exiting={SlideOutRight.duration(240)}
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#09090b', zIndex: 200 }}
+    >
       {/* Header */}
       <View style={{ paddingTop: insets.top + 20, paddingBottom: 12, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717' }} className="flex-row items-center">
-        <Pressable onPress={goBack} hitSlop={8} className="flex-row items-center active:opacity-60 -ml-1">
+        <Pressable onPress={onClose} hitSlop={8} className="flex-row items-center active:opacity-60 -ml-1">
           <ChevronLeft size={22} color="#a1a1aa" />
         </Pressable>
         <Text className="text-white font-bold text-[19px] tracking-tight ml-1">Settings</Text>
@@ -115,7 +110,7 @@ export default function SettingsScreen() {
       <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
         <Section title="Account">
-          <NavRow first icon={<User size={17} color="#818cf8" />} label={profile.name} value={`@${profile.username}`} onPress={goBack} />
+          <NavRow first icon={<User size={17} color="#818cf8" />} label={profile.name} value={`@${profile.username}`} onPress={onClose} />
         </Section>
 
         <Section title="Units & display">
@@ -188,6 +183,6 @@ export default function SettingsScreen() {
           <NavRow danger label="Delete account" onPress={deleteAccount} />
         </Section>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
