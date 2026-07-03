@@ -23,6 +23,17 @@ export interface CoachCreatedRoutine { id: string; name: string; exercises: numb
 export interface CoachDeleted { id: string; name: string }
 export interface CoachStart { id: string; name: string }
 export interface CoachChoice { question: string; options: string[] }
+
+// Live activity trace so the UI can show WHAT the agent is doing in real time.
+export type CoachStepKind = 'thinking' | 'tool' | 'answering';
+export interface CoachStep {
+  id: string;
+  kind: CoachStepKind;
+  label: string;               // e.g. 'Creating routine "Push Day"'
+  detail?: string;             // e.g. '6 exercises added'
+  status: 'running' | 'done' | 'error';
+}
+
 export interface CoachReply {
   text: string;
   created?: CoachCreatedRoutine[];  // routines the coach just added
@@ -30,6 +41,7 @@ export interface CoachReply {
   deleted?: CoachDeleted[];         // routines it removed
   startWorkout?: CoachStart;        // routine ready to start → UI shows a Start card
   choice?: CoachChoice;             // MCQ awaiting the user's tap
+  steps?: CoachStep[];              // the activity trace, kept with the message
 }
 
 // A compact, real snapshot of the athlete for the model to reason over.
@@ -332,6 +344,18 @@ async function callModel(messages: any[], apiKey: string): Promise<any> {
   throw new Error(`${lastErr} — the free coach is busy right now, try again in a moment.`);
 }
 
+// Human-readable label for a tool call, shown live in the activity trace.
+function toolLabel(name: string, args: any): string {
+  switch (name) {
+    case 'create_routine': return `Creating routine “${args?.name || 'routine'}”`;
+    case 'update_routine': return `Editing routine`;
+    case 'delete_routine': return `Deleting routine`;
+    case 'start_workout': return `Starting workout`;
+    case 'ask_choice': return `Asking you a question`;
+    default: return `Running ${name}`;
+  }
+}
+
 // Always true now — a default OpenRouter key ships with the app.
 export function hasCoachKey(_profile: ProfileState): boolean {
   return true;
@@ -345,10 +369,27 @@ export async function getCoachReply(opts: {
   userText: string;
   attachments: Attachment[];
   style?: CoachingStyle;
+  onProgress?: (steps: CoachStep[]) => void; // live activity trace
 }): Promise<CoachReply> {
   const { profile, workouts, history, userText, attachments, style } = opts;
   const apiKey = resolveKey(profile);
   const images = attachments.filter(a => a.type === 'image');
+
+  // ── Live step trace ────────────────────────────────────────
+  const steps: CoachStep[] = [];
+  let seq = 0;
+  const emit = () => opts.onProgress?.(steps.map(s => ({ ...s })));
+  const addStep = (kind: CoachStepKind, label: string): CoachStep => {
+    const s: CoachStep = { id: `s${seq++}`, kind, label, status: 'running' };
+    steps.push(s);
+    emit();
+    return s;
+  };
+  const finishStep = (s: CoachStep, detail?: string, status: 'done' | 'error' = 'done') => {
+    s.status = status;
+    if (detail) s.detail = detail;
+    emit();
+  };
 
   if (images.length && !userText.trim()) {
     return { text: "I can't view images on the current coach model — it's text-only. Describe what you'd like feedback on and I'll help." };
@@ -372,14 +413,18 @@ export async function getCoachReply(opts: {
 
   // Tool-calling loop — bounded so a misbehaving model can't spin forever.
   for (let turn = 0; turn < 5; turn++) {
+    const think = addStep('thinking', turn === 0 ? 'Analyzing your training data' : 'Reviewing results');
     const msg = await callModel(messages, apiKey);
     const toolCalls = msg?.tool_calls;
+    finishStep(think);
 
     if (!toolCalls || toolCalls.length === 0) {
+      const ans = addStep('answering', 'Writing response');
       let content: string = (msg?.content || '').trim();
       if (!content) content = acted() ? 'Done.' : 'Try a shorter, more specific ask.';
       if (images.length) content = `_(I can't see images on the current model, so I'm answering from your message + data.)_\n\n${content}`;
-      return { text: content, ...bundle() };
+      finishStep(ans);
+      return { text: content, ...bundle(), steps: steps.map(s => ({ ...s })) };
     }
 
     // Record the assistant's tool-call turn, then satisfy each call.
@@ -390,29 +435,36 @@ export async function getCoachReply(opts: {
       const name = tc?.function?.name;
       let args: any = {};
       try { args = JSON.parse(tc?.function?.arguments || '{}'); } catch { /* keep {} */ }
+      const step = addStep('tool', toolLabel(name, args));
       const done = (r: any) => messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(r) });
 
       if (name === 'create_routine') {
         const c = executeCreateRoutine(args);
         created.push(c);
+        finishStep(step, `${c.name} · ${c.exercises} exercises added`);
         done({ ok: true, id: c.id, name: c.name, exercises: c.exercises });
       } else if (name === 'update_routine') {
         const r = executeUpdateRoutine(args);
-        if (r.ok && r.summary) updated.push(r.summary);
+        if (r.ok && r.summary) { updated.push(r.summary); finishStep(step, `${r.summary.name} · now ${r.summary.exercises} exercises`); }
+        else finishStep(step, r.error, 'error');
         done(r.ok ? { ok: true, id: r.summary!.id, name: r.summary!.name, exercises: r.summary!.exercises } : { ok: false, error: r.error });
       } else if (name === 'delete_routine') {
         const r = executeDeleteRoutine(args);
-        if (r.ok && r.deleted) deleted.push(r.deleted);
+        if (r.ok && r.deleted) { deleted.push(r.deleted); finishStep(step, `Removed ${r.deleted.name}`); }
+        else finishStep(step, r.error, 'error');
         done(r.ok ? { ok: true, deleted: r.deleted!.name } : { ok: false, error: r.error });
       } else if (name === 'start_workout') {
         const r = resolveStart(args);
-        if (r.ok && r.start) startWorkout = r.start;
+        if (r.ok && r.start) { startWorkout = r.start; finishStep(step, `${r.start.name} ready`); }
+        else finishStep(step, r.error, 'error');
         done(r.ok ? { ok: true, started: r.start!.name, note: 'Workout screen will open for the user.' } : { ok: false, error: r.error });
       } else if (name === 'ask_choice') {
         const options = (Array.isArray(args?.options) ? args.options.map(String) : []).slice(0, 5);
         choice = { question: String(args?.question || ''), options };
+        finishStep(step, `${options.length} options`);
         done({ ok: true, presented: true });
       } else {
+        finishStep(step, 'unknown tool', 'error');
         done({ ok: false, error: 'unknown tool' });
       }
     }
@@ -420,10 +472,10 @@ export async function getCoachReply(opts: {
     // ask_choice is terminal: hand the MCQ back to the UI and wait for a tap.
     if (choice) {
       const text = (msg?.content || '').trim() || choice.question || 'Which do you prefer?';
-      return { text, choice, ...bundle() };
+      return { text, choice, ...bundle(), steps: steps.map(s => ({ ...s })) };
     }
     // Otherwise loop so the model can confirm what it did in words.
   }
 
-  return { text: acted() ? 'Done.' : 'That took too many steps — try a simpler ask.', ...bundle() };
+  return { text: acted() ? 'Done.' : 'That took too many steps — try a simpler ask.', ...bundle(), steps: steps.map(s => ({ ...s })) };
 }

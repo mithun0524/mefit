@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
-import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert } from 'react-native';
-import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share, Dumbbell, ChevronRight, Check, Play, Trash2, Pencil } from 'lucide-react-native';
+import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert, ActivityIndicator } from 'react-native';
+import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share, Dumbbell, ChevronRight, Check, Play, Trash2, Pencil, Zap, ChevronDown, Wrench, AlertCircle } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTabSlide } from '@/lib/useSlideIn';
 import Markdown from 'react-native-markdown-display';
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { getCoachReply, hasCoachKey, buildCoachContext } from '@/lib/coach';
-import type { CoachCreatedRoutine, CoachDeleted, CoachStart, CoachChoice, CoachReply } from '@/lib/coach';
+import type { CoachCreatedRoutine, CoachDeleted, CoachStart, CoachChoice, CoachReply, CoachStep } from '@/lib/coach';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
 
@@ -26,7 +26,30 @@ type Message = {
   deleted?: CoachDeleted[];        // routines it removed
   startWorkout?: CoachStart;       // routine ready to start
   choice?: CoachChoice;            // MCQ awaiting a tap
+  steps?: CoachStep[];             // activity trace of what the agent did
 };
+
+// One row of the agent's activity trace (thinking / tool / answering).
+function StepRow({ step }: { step: CoachStep }) {
+  const color = step.status === 'error' ? '#f87171' : step.status === 'done' ? '#10b981' : '#818cf8';
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 3 }}>
+      <View style={{ width: 16, alignItems: 'center' }}>
+        {step.status === 'running'
+          ? <ActivityIndicator size="small" color="#818cf8" style={{ transform: [{ scale: 0.7 }] }} />
+          : step.status === 'error'
+            ? <AlertCircle size={13} color="#f87171" />
+            : step.kind === 'tool'
+              ? <Check size={13} color="#10b981" strokeWidth={3} />
+              : <Check size={12} color="#3f8f6f" strokeWidth={2.5} />}
+      </View>
+      <Text style={{ flex: 1, color: step.status === 'running' ? '#c7c7cf' : '#8a8a94', fontSize: 12.5, lineHeight: 17 }}>
+        <Text style={{ color: step.status === 'running' ? '#e4e4e7' : '#a1a1aa' }}>{step.label}</Text>
+        {step.detail ? <Text style={{ color: '#6b7280' }}>{`  ·  ${step.detail}`}</Text> : null}
+      </Text>
+    </View>
+  );
+}
 
 const SUGGESTED_PROMPTS = [
   "Build me a push/pull/legs split",
@@ -81,6 +104,8 @@ export default function CoachScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [liveSteps, setLiveSteps] = useState<CoachStep[]>([]);
+  const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
@@ -229,6 +254,7 @@ export default function CoachScreen() {
     setInput('');
     setPendingAttachments([]);
     setIsTyping(true);
+    setLiveSteps([]);
     scrollToBottom();
 
     let reply: CoachReply;
@@ -242,6 +268,7 @@ export default function CoachScreen() {
           userText: text.trim(),
           attachments: currentAttachments,
           style: settings.coachingStyle,
+          onProgress: (steps) => { setLiveSteps(steps); scrollToBottom(); },
         });
       } else {
         // No API key set → graceful templated fallback.
@@ -253,6 +280,7 @@ export default function CoachScreen() {
     }
 
     setIsTyping(false);
+    setLiveSteps([]);
     setMessages(prev => [...prev, {
       id: Date.now() + 1,
       sender: 'ai',
@@ -262,6 +290,7 @@ export default function CoachScreen() {
       deleted: reply.deleted,
       startWorkout: reply.startWorkout,
       choice: reply.choice,
+      steps: reply.steps,
     }]);
     scrollToBottom();
 
@@ -329,6 +358,29 @@ export default function CoachScreen() {
               {isAI ? (
                 /* ── AI Message (Markdown) ── */
                 <View style={{ maxWidth: '92%' }}>
+                {/* Collapsible activity trace — full transparency on what the agent did */}
+                {msg.steps && msg.steps.some(s => s.kind === 'tool') && (() => {
+                  const nActions = msg.steps.filter(s => s.kind === 'tool').length;
+                  const open = !!openTrace[msg.id];
+                  return (
+                    <View style={{ marginLeft: 42, marginBottom: 6 }}>
+                      <Pressable
+                        onPress={() => setOpenTrace(p => ({ ...p, [msg.id]: !p[msg.id] }))}
+                        className="active:opacity-70"
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#141418', borderWidth: 1, borderColor: '#26262c', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 11 }}
+                      >
+                        <Zap size={11} color="#818cf8" fill="#818cf8" />
+                        <Text style={{ color: '#a1a1aa', fontSize: 11.5, fontWeight: '500' }}>{nActions} action{nActions !== 1 ? 's' : ''}</Text>
+                        <ChevronDown size={12} color="#6b7280" style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} />
+                      </Pressable>
+                      {open && (
+                        <View style={{ marginTop: 6, backgroundColor: '#141418', borderWidth: 1, borderColor: '#26262c', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
+                          {msg.steps.map(s => <StepRow key={s.id} step={s} />)}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })()}
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
                   <View style={{ width: 32, marginRight: 10, alignItems: 'center', justifyContent: 'flex-end' }}>
                     {isLastInGroup && (
@@ -511,16 +563,23 @@ export default function CoachScreen() {
                 </View>
               </View>
               <View style={{
+                flex: liveSteps.length ? 1 : undefined,
                 backgroundColor: '#1c1c21',
                 borderWidth: 1, borderColor: '#313138',
                 borderRadius: 18, borderBottomLeftRadius: 4,
-                paddingHorizontal: 16, paddingVertical: 16,
+                paddingHorizontal: 16, paddingVertical: liveSteps.length ? 11 : 16,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  {[0, 1, 2].map(i => (
-                    <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#737373' }} />
-                  ))}
-                </View>
+                {liveSteps.length > 0 ? (
+                  <View>
+                    {liveSteps.map(s => <StepRow key={s.id} step={s} />)}
+                  </View>
+                ) : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {[0, 1, 2].map(i => (
+                      <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#737373' }} />
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
           </View>
