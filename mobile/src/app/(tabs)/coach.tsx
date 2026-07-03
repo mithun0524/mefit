@@ -1,27 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert } from 'react-native';
-import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share } from 'lucide-react-native';
+import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share, Dumbbell, ChevronRight, Check } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTabSlide } from '@/lib/useSlideIn';
 import Markdown from 'react-native-markdown-display';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { getCoachReply, hasCoachKey, buildCoachContext } from '@/lib/coach';
+import type { CoachCreatedRoutine, CoachChoice } from '@/lib/coach';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
 
 type Attachment = { id: string; type: 'image' | 'file'; uri: string; name: string };
-type Message = { id: number; text: string; sender: 'ai' | 'user'; attachments?: Attachment[] };
+type Message = {
+  id: number;
+  text: string;
+  sender: 'ai' | 'user';
+  attachments?: Attachment[];
+  created?: CoachCreatedRoutine[]; // routines the coach just built
+  choice?: CoachChoice;            // MCQ awaiting a tap
+};
 
 const SUGGESTED_PROMPTS = [
+  "Build me a push/pull/legs split",
   "Check my muscle fatigue",
+  "Create a routine for today",
   "Suggest active recovery",
-  "Optimize my leg day",
-  "Explain 1RM calculation",
   "Best post-workout meal?",
 ];
 
@@ -59,6 +67,7 @@ const getAIReply = (prompt: string, userName: string, prefUnit: string): string 
 
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const slide = useTabSlide(3);
   const { profile, workouts, settings } = useAppStore();
   const { name, unit } = profile;
@@ -219,11 +228,11 @@ export default function CoachScreen() {
     setIsTyping(true);
     scrollToBottom();
 
-    let replyText: string;
+    let reply: { text: string; created?: CoachCreatedRoutine[]; choice?: CoachChoice };
     try {
       if (hasCoachKey(profile)) {
-        // Real coach — reasons over live readiness / recovery / workout data.
-        replyText = await getCoachReply({
+        // Real agentic coach — reasons over live data and can create routines / ask MCQs.
+        reply = await getCoachReply({
           profile,
           workouts,
           history,
@@ -234,18 +243,27 @@ export default function CoachScreen() {
       } else {
         // No API key set → graceful templated fallback.
         await new Promise(r => setTimeout(r, 800));
-        replyText = getAIReply(text, userName, unit);
-        if (currentAttachments.length > 0) {
-          replyText = `*Add your OpenAI API key in Profile → settings to enable real image analysis.*\n\n` + (text.trim() ? replyText : '');
-        }
+        reply = { text: getAIReply(text, userName, unit) };
       }
     } catch (e: any) {
-      replyText = `⚠️ Couldn't reach the coach: ${e?.message || 'unknown error'}.\n\nCheck your OpenAI API key in **Profile → settings**.`;
+      reply = { text: `⚠️ Couldn't reach the coach: ${e?.message || 'unknown error'}.\n\nCheck your API key in **Profile → settings**.` };
     }
 
     setIsTyping(false);
-    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: replyText.trim() }]);
+    setMessages(prev => [...prev, {
+      id: Date.now() + 1,
+      sender: 'ai',
+      text: reply.text.trim(),
+      created: reply.created,
+      choice: reply.choice,
+    }]);
     scrollToBottom();
+  };
+
+  // Tap an MCQ option → clear the chips on that message and send the choice.
+  const answerChoice = (messageId: number, option: string) => {
+    setMessages(prev => prev.map(m => (m.id === messageId ? { ...m, choice: undefined } : m)));
+    sendMessage(option);
   };
 
   return (
@@ -298,7 +316,8 @@ export default function CoachScreen() {
             >
               {isAI ? (
                 /* ── AI Message (Markdown) ── */
-                <View style={{ flexDirection: 'row', alignItems: 'flex-end', maxWidth: '92%' }}>
+                <View style={{ maxWidth: '92%' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
                   <View style={{ width: 32, marginRight: 10, alignItems: 'center', justifyContent: 'flex-end' }}>
                     {isLastInGroup && (
                       <View style={{
@@ -324,6 +343,49 @@ export default function CoachScreen() {
                       {msg.text}
                     </Markdown>
                   </View>
+                </View>
+
+                {/* Routines the coach just built → tap to open in the editor */}
+                {msg.created && msg.created.length > 0 && (
+                  <View style={{ marginLeft: 42, marginTop: 8, gap: 8 }}>
+                    {msg.created.map(r => (
+                      <Pressable
+                        key={r.id}
+                        onPress={() => router.push(`/routine/${r.id}`)}
+                        className="active:opacity-70"
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141418', borderWidth: 1, borderColor: '#4f46e5', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }}
+                      >
+                        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(79,70,229,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Dumbbell size={16} color="#818cf8" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Check size={12} color="#10b981" strokeWidth={3} />
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{r.name}</Text>
+                          </View>
+                          <Text style={{ color: '#8a8a94', fontSize: 12, marginTop: 2 }}>{r.exercises} exercises · added to your routines</Text>
+                        </View>
+                        <ChevronRight size={16} color="#52525b" />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                {/* Coach asked a multiple-choice question → tappable chips */}
+                {msg.choice && msg.choice.options.length > 0 && (
+                  <View style={{ marginLeft: 42, marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {msg.choice.options.map((opt, i) => (
+                      <Pressable
+                        key={i}
+                        onPress={() => answerChoice(msg.id, opt)}
+                        className="active:opacity-70"
+                        style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 20, paddingVertical: 9, paddingHorizontal: 16 }}
+                      >
+                        <Text style={{ color: '#d4d4d8', fontSize: 13, fontWeight: '500' }}>{opt}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
                 </View>
               ) : (
                 /* ── User Message ── */
