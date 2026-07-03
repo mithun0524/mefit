@@ -292,8 +292,10 @@ function isTransient(code?: number, msg = ''): boolean {
     /ResourceExhausted|Worker local|rate.?limit|temporarily|overloaded|try again/i.test(msg);
 }
 
-// One round-trip to the model, with retry on transient upstream errors.
-async function callModel(messages: any[], apiKey: string): Promise<any> {
+// One streaming round-trip. onContent is called with the ACCUMULATED text so far
+// (so the UI can type the answer out live). Assembles tool_call deltas too.
+// Incremental on web (ReadableStream); falls back to full-text parse on native.
+async function streamModel(messages: any[], apiKey: string, onContent: (text: string) => void): Promise<any> {
   let lastErr = 'Coach error';
   for (let attempt = 0; attempt < 4; attempt++) {
     const controller = new AbortController();
@@ -316,30 +318,88 @@ async function callModel(messages: any[], apiKey: string): Promise<any> {
           max_tokens: 3000,
           tools: TOOLS,
           tool_choice: 'auto',
+          stream: true,
         }),
       });
     } catch (e: any) {
-      throw new Error(e?.name === 'AbortError' ? 'The coach took too long to respond — try again.' : 'Network error');
-    } finally {
       clearTimeout(timer);
+      throw new Error(e?.name === 'AbortError' ? 'The coach took too long to respond — try again.' : 'Network error');
     }
 
     if (!res.ok) {
+      clearTimeout(timer);
       const body = await res.text().catch(() => '');
       if (res.status === 401) throw new Error('Invalid API key');
       if (isTransient(res.status, body) && attempt < 3) { await sleep(1000 * (attempt + 1)); continue; }
       throw new Error(`HTTP ${res.status}${body ? ` — ${body.slice(0, 160)}` : ''}`);
     }
 
-    const data = await res.json();
-    if (data?.error) {
-      lastErr = data.error.message || 'Coach error';
-      if (isTransient(data.error.code, lastErr) && attempt < 3) { await sleep(1000 * (attempt + 1)); continue; }
-      throw new Error(lastErr);
+    let content = '';
+    const toolAcc: any[] = [];
+    let transientErr: string | null = null;
+    let fatal: Error | null = null;
+
+    const handleLine = (line: string) => {
+      if (!line.startsWith('data:')) return;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') return;
+      let json: any;
+      try { json = JSON.parse(payload); } catch { return; }
+      if (json.error) {
+        const m = json.error.message || 'Coach error';
+        if (isTransient(json.error.code, m)) transientErr = m; else fatal = new Error(m);
+        return;
+      }
+      const ch = json.choices?.[0];
+      if (!ch) return;
+      const delta = ch.delta || {};
+      if (typeof delta.content === 'string' && delta.content) { content += delta.content; onContent(content); }
+      if (Array.isArray(delta.tool_calls)) {
+        for (const t of delta.tool_calls) {
+          const i = t.index ?? 0;
+          if (!toolAcc[i]) toolAcc[i] = { id: t.id || `call_${i}`, type: 'function', function: { name: '', arguments: '' } };
+          if (t.id) toolAcc[i].id = t.id;
+          if (t.function?.name) toolAcc[i].function.name += t.function.name;
+          if (t.function?.arguments) toolAcc[i].function.arguments += t.function.arguments;
+        }
+      }
+    };
+
+    try {
+      const reader: any = (res as any).body?.getReader?.();
+      if (reader) {
+        const dec = new TextDecoder();
+        let buf = '';
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let nl: number;
+          while ((nl = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (line) handleLine(line);
+            if (fatal) throw fatal;
+          }
+        }
+        if (buf.trim()) handleLine(buf.trim());
+      } else {
+        // Native / no stream reader — parse the whole SSE body at once.
+        const text = await res.text();
+        for (const line of text.split('\n')) { const l = line.trim(); if (l) handleLine(l); if (fatal) throw fatal; }
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
     }
-    const msg = data?.choices?.[0]?.message;
-    if (!msg) { lastErr = 'Empty response'; if (attempt < 3) { await sleep(800 * (attempt + 1)); continue; } }
-    return msg;
+    clearTimeout(timer);
+
+    if (transientErr && !content && toolAcc.length === 0 && attempt < 3) { lastErr = transientErr; await sleep(1000 * (attempt + 1)); continue; }
+    if (transientErr && !content && toolAcc.length === 0) throw new Error(transientErr);
+
+    const tool_calls = toolAcc.filter(Boolean);
+    return { role: 'assistant', content, tool_calls: tool_calls.length ? tool_calls : undefined };
   }
   throw new Error(`${lastErr} — the free coach is busy right now, try again in a moment.`);
 }
@@ -370,6 +430,7 @@ export async function getCoachReply(opts: {
   attachments: Attachment[];
   style?: CoachingStyle;
   onProgress?: (steps: CoachStep[]) => void; // live activity trace
+  onToken?: (partial: string) => void;       // streamed answer text (accumulated)
 }): Promise<CoachReply> {
   const { profile, workouts, history, userText, attachments, style } = opts;
   const apiKey = resolveKey(profile);
@@ -414,16 +475,15 @@ export async function getCoachReply(opts: {
   // Tool-calling loop — bounded so a misbehaving model can't spin forever.
   for (let turn = 0; turn < 5; turn++) {
     const think = addStep('thinking', turn === 0 ? 'Analyzing your training data' : 'Reviewing results');
-    const msg = await callModel(messages, apiKey);
+    opts.onToken?.(''); // clear any partial from a previous turn before this one streams
+    const msg = await streamModel(messages, apiKey, (txt) => opts.onToken?.(txt));
     const toolCalls = msg?.tool_calls;
     finishStep(think);
 
     if (!toolCalls || toolCalls.length === 0) {
-      const ans = addStep('answering', 'Writing response');
       let content: string = (msg?.content || '').trim();
       if (!content) content = acted() ? 'Done.' : 'Try a shorter, more specific ask.';
       if (images.length) content = `_(I can't see images on the current model, so I'm answering from your message + data.)_\n\n${content}`;
-      finishStep(ans);
       return { text: content, ...bundle(), steps: steps.map(s => ({ ...s })) };
     }
 

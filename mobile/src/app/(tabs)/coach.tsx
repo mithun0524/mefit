@@ -105,6 +105,7 @@ export default function CoachScreen() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [liveSteps, setLiveSteps] = useState<CoachStep[]>([]);
+  const [liveText, setLiveText] = useState('');
   const [openTrace, setOpenTrace] = useState<Record<number, boolean>>({});
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
@@ -255,6 +256,7 @@ export default function CoachScreen() {
     setPendingAttachments([]);
     setIsTyping(true);
     setLiveSteps([]);
+    setLiveText('');
     scrollToBottom();
 
     let reply: CoachReply;
@@ -269,6 +271,7 @@ export default function CoachScreen() {
           attachments: currentAttachments,
           style: settings.coachingStyle,
           onProgress: (steps) => { setLiveSteps(steps); scrollToBottom(); },
+          onToken: (partial) => { setLiveText(partial); scrollToBottom(); },
         });
       } else {
         // No API key set → graceful templated fallback.
@@ -281,6 +284,7 @@ export default function CoachScreen() {
 
     setIsTyping(false);
     setLiveSteps([]);
+    setLiveText('');
     setMessages(prev => [...prev, {
       id: Date.now() + 1,
       sender: 'ai',
@@ -563,15 +567,21 @@ export default function CoachScreen() {
                 </View>
               </View>
               <View style={{
-                flex: liveSteps.length ? 1 : undefined,
+                flex: (liveSteps.length || liveText) ? 1 : undefined,
                 backgroundColor: '#1c1c21',
                 borderWidth: 1, borderColor: '#313138',
                 borderRadius: 18, borderBottomLeftRadius: 4,
-                paddingHorizontal: 16, paddingVertical: liveSteps.length ? 11 : 16,
+                paddingHorizontal: 16, paddingVertical: (liveSteps.length || liveText) ? 12 : 16,
               }}>
-                {liveSteps.length > 0 ? (
+                {(liveSteps.length > 0 || liveText) ? (
                   <View>
                     {liveSteps.map(s => <StepRow key={s.id} step={s} />)}
+                    {liveText ? (
+                      <Text style={{ color: '#e4e4e7', fontSize: 15, lineHeight: 23, marginTop: liveSteps.length ? 9 : 0 }}>
+                        {liveText}
+                        <Text style={{ color: '#818cf8' }}>▍</Text>
+                      </Text>
+                    ) : null}
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
