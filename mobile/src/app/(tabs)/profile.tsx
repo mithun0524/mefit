@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Image } from '@/tw';
 import { Settings, Activity, Play, Calendar, X, Check, Lock } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, SlideInUp, SlideOutDown } from 'react-native-reanimated';
-import { Modal, Share } from 'react-native';
+import Animated, { FadeInDown, SlideInUp, SlideOutDown, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { Modal, Share, Dimensions } from 'react-native';
+
+const SCREEN_WIDTH = Dimensions.get('window').width;
 import * as ImagePicker from 'expo-image-picker';
 import { useAppStore } from '@/store/useAppStore';
 import { useUI } from '@/lib/ui';
@@ -30,6 +32,14 @@ const PRESET_AVATARS = [
 
 export default function ProfileScreen() {
   const router = useRouter();
+
+  // Slide the profile in from the right whenever it's opened (avatar link or tab).
+  const enterX = useSharedValue(0);
+  const enterStyle = useAnimatedStyle(() => ({ transform: [{ translateX: enterX.value }] }));
+  useFocusEffect(useCallback(() => {
+    enterX.value = SCREEN_WIDTH;
+    enterX.value = withTiming(0, { duration: 280 });
+  }, []));
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'activity' | 'analytics' | 'routines'>('activity');
 
@@ -135,7 +145,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#09090b' }}>
+    <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, enterStyle]}>
       {/* Header */}
       <View
         style={{ paddingTop: insets.top + 20, backgroundColor: '#09090b', borderBottomWidth: 1, borderBottomColor: '#171717' }}
@@ -623,6 +633,6 @@ export default function ProfileScreen() {
           <Text className="text-white font-medium text-[13px] text-center">{toastMessage}</Text>
         </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 }
