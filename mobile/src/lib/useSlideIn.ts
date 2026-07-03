@@ -16,15 +16,29 @@ let lastTabIndex = 0;
  */
 export function useTabSlide(tabIndex: number, duration = 240) {
   const x = useSharedValue(0);
-  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  // elev: 1 while the page is travelling, 0 once settled — drives the edge shadow
+  // so the incoming screen reads as a card sliding OVER, then flattens flush.
+  const elev = useSharedValue(0);
+  const dir = useSharedValue(1);
+  const style = useAnimatedStyle(() => {
+    // Shadow sits on the trailing edge (the side facing the screen it covers).
+    const off = -dir.value * 18 * elev.value;
+    return {
+      transform: [{ translateX: x.value }],
+      boxShadow: `${off}px 0px 32px 0px rgba(0,0,0,${0.55 * elev.value})`,
+    };
+  });
   useFocusEffect(
     useCallback(() => {
       const from = lastTabIndex;
       lastTabIndex = tabIndex;
       if (from === tabIndex) return undefined; // same tab / first mount → no slide
-      const dir = tabIndex > from ? 1 : -1; // right = +, left = -
-      x.value = dir * SCREEN_WIDTH;
+      const d = tabIndex > from ? 1 : -1; // right = +, left = -
+      dir.value = d;
+      elev.value = 1;
+      x.value = d * SCREEN_WIDTH;
       x.value = withTiming(0, { duration });
+      elev.value = withTiming(0, { duration: duration + 120 });
       return undefined;
     }, [tabIndex, duration]),
   );
