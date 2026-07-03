@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, TextInput } from '@/tw';
 import { Plus, CheckCircle2, Search, Trash2, Timer, Play, MoreHorizontal, Sparkles, Dumbbell, BarChart2, ChevronRight, Clock, Zap, X, ChevronDown } from 'lucide-react-native';
 
 import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, LinearTransition } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Alert, Platform } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
@@ -156,6 +156,16 @@ export default function WorkoutScreen() {
     setWorkoutStartTime(Date.now());
     setMenuOpenRoutineId(null);
   }, []);
+
+  // Coach (or any deep link) can open a live session: /workout?start=<routineId>
+  const startParam = useLocalSearchParams<{ start?: string }>().start;
+  useEffect(() => {
+    if (!startParam) return;
+    const routine = routines.find(r => r.id === startParam);
+    if (routine && !activeRoutine) startRoutine(routine);
+    router.setParams({ start: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startParam, routines]);
 
   const endWorkout = useCallback(() => {
     setActiveRoutine(null);

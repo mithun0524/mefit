@@ -20,11 +20,16 @@ function resolveKey(profile: ProfileState): string {
 //  RESULT SHAPE — the coach can now DO things, not just talk.
 // ─────────────────────────────────────────────────────────────
 export interface CoachCreatedRoutine { id: string; name: string; exercises: number; muscles: string[] }
+export interface CoachDeleted { id: string; name: string }
+export interface CoachStart { id: string; name: string }
 export interface CoachChoice { question: string; options: string[] }
 export interface CoachReply {
   text: string;
-  created?: CoachCreatedRoutine[]; // routines the coach just added to the app
-  choice?: CoachChoice;            // a multiple-choice question awaiting the user's tap
+  created?: CoachCreatedRoutine[];  // routines the coach just added
+  updated?: CoachCreatedRoutine[];  // routines it edited
+  deleted?: CoachDeleted[];         // routines it removed
+  startWorkout?: CoachStart;        // routine ready to start → UI shows a Start card
+  choice?: CoachChoice;             // MCQ awaiting the user's tap
 }
 
 // A compact, real snapshot of the athlete for the model to reason over.
@@ -38,7 +43,10 @@ export function buildCoachContext(profile: ProfileState, workouts: WorkoutRecord
     .join('\n') || '- none logged yet';
   const routines = useAppStore.getState().routines;
   const routineLines = routines.length
-    ? routines.map(r => `- ${r.name} (${r.exercises.length} exercises)`).join('\n')
+    ? routines.map(r => {
+        const names = r.exercises.map(e => e.name).join(', ') || 'empty';
+        return `- "${r.name}" [id: ${r.id}] — ${r.exercises.length} exercises: ${names}`;
+      }).join('\n')
     : '- none yet';
   const prefs = [
     profile.goal && `Goal: ${profile.goal}`,
@@ -68,10 +76,13 @@ ${TONE[style]}
 Keep internal reasoning brief — do NOT over-analyze before responding. Be concise and practical. Use markdown (bold, short lists, small tables) when it helps. Ground every answer in the athlete's real data below; never invent numbers.
 
 === HOW TO ACT (tools) ===
-You have tools. USE THEM instead of only describing things:
-- create_routine: when the user wants a routine / plan / split BUILT, call this ONCE PER ROUTINE to actually add it to the app. Do not paste routine tables as text and claim they're created — the ONLY way a routine exists is via this tool. For a 3-day split, call it 3 times.
-- ask_choice: when a request is ambiguous and one detail would change the plan (e.g. how many days/week, equipment, goal), ask ONE short multiple-choice question via this tool BEFORE building. Don't interrogate — at most one question, then act.
-Sensible defaults: if the user says "just do it" / "nope create", stop asking and build with reasonable assumptions from their data. After creating routines, confirm in ONE short sentence and ask if it suits them or if they want tweaks. Factor readiness/fatigue into volume (go lighter on fatigued muscles, hard on recovered ones).
+You have tools. USE THEM instead of only describing things — the ONLY way a routine actually exists/changes is via a tool call, never by pasting a table.
+- create_routine: user wants a routine / plan / split BUILT. Call ONCE PER ROUTINE (a 3-day split = 3 calls).
+- update_routine: user wants an EXISTING routine changed (rename, swap/add/remove exercises, adjust sets). Pass its id from the routine list below. When you pass exercises, pass the FULL new exercise list (it replaces the old one).
+- delete_routine: user wants a routine removed. Pass its id.
+- start_workout: user wants to START / do / train a routine now. Pass its id; the app opens the live workout.
+- ask_choice: when a request is ambiguous and one detail changes the plan (days/week, equipment, goal), ask ONE short multiple-choice question BEFORE acting. At most one question, then act.
+Use ids from the "Existing routines" list to update/delete/start. Sensible defaults: if the user says "just do it" / "nope create", stop asking and act with reasonable assumptions from their data. After acting, confirm in ONE short sentence and ask if it suits them. Factor readiness/fatigue into volume (lighter on fatigued muscles, hard on recovered ones).
 
 === ATHLETE DATA (today) ===
 ${context}`;
@@ -118,6 +129,66 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'update_routine',
+      description: 'Edit an existing routine. Provide its id. To change exercises, pass the FULL replacement list.',
+      parameters: {
+        type: 'object',
+        properties: {
+          routineId: { type: 'string', description: 'id of the routine to edit (from the routine list)' },
+          name: { type: 'string', description: 'New name (optional)' },
+          muscles: { type: 'array', items: { type: 'string' } },
+          duration: { type: 'string' },
+          exercises: {
+            type: 'array',
+            description: 'Full replacement exercise list (optional; omit to keep current exercises)',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                sets: { type: 'integer' },
+                reps: { type: 'integer' },
+                repsMax: { type: 'integer' },
+                restSeconds: { type: 'integer' },
+                isBodyweight: { type: 'boolean' },
+                isBarbell: { type: 'boolean' },
+                muscles: { type: 'array', items: { type: 'string' } },
+                supersetGroup: { type: 'integer' },
+              },
+              required: ['name', 'sets', 'reps'],
+            },
+          },
+        },
+        required: ['routineId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_routine',
+      description: 'Delete a routine from the app. Provide its id.',
+      parameters: {
+        type: 'object',
+        properties: { routineId: { type: 'string', description: 'id of the routine to delete' } },
+        required: ['routineId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'start_workout',
+      description: 'Start a live workout session from a routine. Provide its id. Opens the workout screen.',
+      parameters: {
+        type: 'object',
+        properties: { routineId: { type: 'string', description: 'id of the routine to start' } },
+        required: ['routineId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'ask_choice',
       description: 'Ask the user a single multiple-choice question to resolve an ambiguity before acting.',
       parameters: {
@@ -132,10 +203,10 @@ const TOOLS = [
   },
 ];
 
-// Execute a create_routine tool call against the real store; return a summary.
-function executeCreateRoutine(args: any): CoachCreatedRoutine {
-  const rawExercises: any[] = Array.isArray(args?.exercises) ? args.exercises : [];
-  const exercises: RoutineExercise[] = rawExercises.map((e, idx) => {
+// Turn the model's loose exercise list into store-shaped RoutineExercises.
+function mapExercises(raw: any): RoutineExercise[] {
+  const list: any[] = Array.isArray(raw) ? raw : [];
+  return list.map((e, idx) => {
     const setCount = Math.min(10, Math.max(1, Number(e?.sets) || 3));
     const reps = Math.max(1, Number(e?.reps) || 10);
     const repsMax = e?.repsMax != null && Number(e.repsMax) > reps ? Number(e.repsMax) : undefined;
@@ -151,6 +222,17 @@ function executeCreateRoutine(args: any): CoachCreatedRoutine {
       sets: Array.from({ length: setCount }, () => ({ reps, repsMax, weight: 0 })),
     };
   });
+}
+
+// Resolve a routine by id, or fall back to a case-insensitive name match.
+function findRoutine(idOrName: string) {
+  const routines = useAppStore.getState().routines;
+  const key = String(idOrName || '').trim().toLowerCase();
+  return routines.find(r => r.id.toLowerCase() === key) || routines.find(r => r.name.toLowerCase() === key);
+}
+
+function executeCreateRoutine(args: any): CoachCreatedRoutine {
+  const exercises = mapExercises(args?.exercises);
   const muscles: string[] = Array.isArray(args?.muscles) ? args.muscles.map(String) : [];
   const routine: Omit<Routine, 'id'> = {
     name: String(args?.name || 'New Routine'),
@@ -158,10 +240,35 @@ function executeCreateRoutine(args: any): CoachCreatedRoutine {
     muscles,
     exercises,
   };
-  const store = useAppStore.getState();
-  store.addRoutine(routine);
+  useAppStore.getState().addRoutine(routine);
   const id = useAppStore.getState().routines[0]?.id || `r-${routine.name}`;
   return { id, name: routine.name, exercises: exercises.length, muscles };
+}
+
+function executeUpdateRoutine(args: any): { ok: boolean; summary?: CoachCreatedRoutine; error?: string } {
+  const target = findRoutine(args?.routineId);
+  if (!target) return { ok: false, error: 'routine not found' };
+  const updates: any = {};
+  if (args?.name) updates.name = String(args.name);
+  if (args?.duration) updates.duration = String(args.duration);
+  if (Array.isArray(args?.muscles)) updates.muscles = args.muscles.map(String);
+  if (Array.isArray(args?.exercises)) updates.exercises = mapExercises(args.exercises);
+  useAppStore.getState().updateRoutine(target.id, updates);
+  const after = useAppStore.getState().routines.find(r => r.id === target.id);
+  return { ok: true, summary: { id: target.id, name: after?.name || target.name, exercises: after?.exercises.length || 0, muscles: after?.muscles || [] } };
+}
+
+function executeDeleteRoutine(args: any): { ok: boolean; deleted?: CoachDeleted; error?: string } {
+  const target = findRoutine(args?.routineId);
+  if (!target) return { ok: false, error: 'routine not found' };
+  useAppStore.getState().deleteRoutine(target.id);
+  return { ok: true, deleted: { id: target.id, name: target.name } };
+}
+
+function resolveStart(args: any): { ok: boolean; start?: CoachStart; error?: string } {
+  const target = findRoutine(args?.routineId);
+  if (!target) return { ok: false, error: 'routine not found' };
+  return { ok: true, start: { id: target.id, name: target.name } };
 }
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -252,6 +359,16 @@ export async function getCoachReply(opts: {
   messages.push({ role: 'user', content: userText });
 
   const created: CoachCreatedRoutine[] = [];
+  const updated: CoachCreatedRoutine[] = [];
+  const deleted: CoachDeleted[] = [];
+  let startWorkout: CoachStart | undefined;
+  const acted = () => created.length || updated.length || deleted.length || startWorkout;
+  const bundle = () => ({
+    created: created.length ? created : undefined,
+    updated: updated.length ? updated : undefined,
+    deleted: deleted.length ? deleted : undefined,
+    startWorkout,
+  });
 
   // Tool-calling loop — bounded so a misbehaving model can't spin forever.
   for (let turn = 0; turn < 5; turn++) {
@@ -260,9 +377,9 @@ export async function getCoachReply(opts: {
 
     if (!toolCalls || toolCalls.length === 0) {
       let content: string = (msg?.content || '').trim();
-      if (!content) content = created.length ? 'Done — added to your routines.' : 'Try a shorter, more specific ask.';
+      if (!content) content = acted() ? 'Done.' : 'Try a shorter, more specific ask.';
       if (images.length) content = `_(I can't see images on the current model, so I'm answering from your message + data.)_\n\n${content}`;
-      return { text: content, created: created.length ? created : undefined };
+      return { text: content, ...bundle() };
     }
 
     // Record the assistant's tool-call turn, then satisfy each call.
@@ -273,27 +390,40 @@ export async function getCoachReply(opts: {
       const name = tc?.function?.name;
       let args: any = {};
       try { args = JSON.parse(tc?.function?.arguments || '{}'); } catch { /* keep {} */ }
+      const done = (r: any) => messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(r) });
 
       if (name === 'create_routine') {
         const c = executeCreateRoutine(args);
         created.push(c);
-        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ ok: true, id: c.id, name: c.name, exercises: c.exercises }) });
+        done({ ok: true, id: c.id, name: c.name, exercises: c.exercises });
+      } else if (name === 'update_routine') {
+        const r = executeUpdateRoutine(args);
+        if (r.ok && r.summary) updated.push(r.summary);
+        done(r.ok ? { ok: true, id: r.summary!.id, name: r.summary!.name, exercises: r.summary!.exercises } : { ok: false, error: r.error });
+      } else if (name === 'delete_routine') {
+        const r = executeDeleteRoutine(args);
+        if (r.ok && r.deleted) deleted.push(r.deleted);
+        done(r.ok ? { ok: true, deleted: r.deleted!.name } : { ok: false, error: r.error });
+      } else if (name === 'start_workout') {
+        const r = resolveStart(args);
+        if (r.ok && r.start) startWorkout = r.start;
+        done(r.ok ? { ok: true, started: r.start!.name, note: 'Workout screen will open for the user.' } : { ok: false, error: r.error });
       } else if (name === 'ask_choice') {
         const options = (Array.isArray(args?.options) ? args.options.map(String) : []).slice(0, 5);
         choice = { question: String(args?.question || ''), options };
-        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ ok: true, presented: true }) });
+        done({ ok: true, presented: true });
       } else {
-        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ ok: false, error: 'unknown tool' }) });
+        done({ ok: false, error: 'unknown tool' });
       }
     }
 
     // ask_choice is terminal: hand the MCQ back to the UI and wait for a tap.
     if (choice) {
       const text = (msg?.content || '').trim() || choice.question || 'Which do you prefer?';
-      return { text, choice, created: created.length ? created : undefined };
+      return { text, choice, ...bundle() };
     }
-    // Otherwise loop so the model can confirm the creation in words.
+    // Otherwise loop so the model can confirm what it did in words.
   }
 
-  return { text: created.length ? 'Added to your routines.' : 'That took too many steps — try a simpler ask.', created: created.length ? created : undefined };
+  return { text: acted() ? 'Done.' : 'That took too many steps — try a simpler ask.', ...bundle() };
 }

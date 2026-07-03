@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView } from '@/tw';
 import { ScrollView as RNScrollView, KeyboardAvoidingView, Platform, StyleSheet, Modal, Image, Alert } from 'react-native';
-import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share, Dumbbell, ChevronRight, Check } from 'lucide-react-native';
+import { Send, Sparkles, Plus, MoreHorizontal, X, FileText, Image as ImageIcon, Camera, Info, Share, Dumbbell, ChevronRight, Check, Play, Trash2, Pencil } from 'lucide-react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTabSlide } from '@/lib/useSlideIn';
 import Markdown from 'react-native-markdown-display';
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppStore } from '@/store/useAppStore';
 import { getCoachReply, hasCoachKey, buildCoachContext } from '@/lib/coach';
-import type { CoachCreatedRoutine, CoachChoice } from '@/lib/coach';
+import type { CoachCreatedRoutine, CoachDeleted, CoachStart, CoachChoice, CoachReply } from '@/lib/coach';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
 
@@ -22,6 +22,9 @@ type Message = {
   sender: 'ai' | 'user';
   attachments?: Attachment[];
   created?: CoachCreatedRoutine[]; // routines the coach just built
+  updated?: CoachCreatedRoutine[]; // routines it edited
+  deleted?: CoachDeleted[];        // routines it removed
+  startWorkout?: CoachStart;       // routine ready to start
   choice?: CoachChoice;            // MCQ awaiting a tap
 };
 
@@ -228,7 +231,7 @@ export default function CoachScreen() {
     setIsTyping(true);
     scrollToBottom();
 
-    let reply: { text: string; created?: CoachCreatedRoutine[]; choice?: CoachChoice };
+    let reply: CoachReply;
     try {
       if (hasCoachKey(profile)) {
         // Real agentic coach — reasons over live data and can create routines / ask MCQs.
@@ -255,9 +258,18 @@ export default function CoachScreen() {
       sender: 'ai',
       text: reply.text.trim(),
       created: reply.created,
+      updated: reply.updated,
+      deleted: reply.deleted,
+      startWorkout: reply.startWorkout,
       choice: reply.choice,
     }]);
     scrollToBottom();
+
+    // Coach asked to start a workout → open the live session on the Workout tab.
+    if (reply.startWorkout) {
+      const rid = reply.startWorkout.id;
+      setTimeout(() => router.push({ pathname: '/(tabs)/workout', params: { start: rid } }), 500);
+    }
   };
 
   // Tap an MCQ option → clear the chips on that message and send the choice.
@@ -368,6 +380,67 @@ export default function CoachScreen() {
                         <ChevronRight size={16} color="#52525b" />
                       </Pressable>
                     ))}
+                  </View>
+                )}
+
+                {/* Routines the coach edited */}
+                {msg.updated && msg.updated.length > 0 && (
+                  <View style={{ marginLeft: 42, marginTop: 8, gap: 8 }}>
+                    {msg.updated.map(r => (
+                      <Pressable
+                        key={r.id}
+                        onPress={() => router.push(`/routine/${r.id}`)}
+                        className="active:opacity-70"
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141418', borderWidth: 1, borderColor: '#313138', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }}
+                      >
+                        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(79,70,229,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Pencil size={15} color="#818cf8" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>{r.name}</Text>
+                          <Text style={{ color: '#8a8a94', fontSize: 12, marginTop: 2 }}>Updated · {r.exercises} exercises</Text>
+                        </View>
+                        <ChevronRight size={16} color="#52525b" />
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+
+                {/* Routines the coach removed */}
+                {msg.deleted && msg.deleted.length > 0 && (
+                  <View style={{ marginLeft: 42, marginTop: 8, gap: 8 }}>
+                    {msg.deleted.map(r => (
+                      <View
+                        key={r.id}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#141418', borderWidth: 1, borderColor: '#2a1416', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 }}
+                      >
+                        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(239,68,68,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Trash2 size={15} color="#f87171" />
+                        </View>
+                        <Text style={{ flex: 1, color: '#a1a1aa', fontSize: 14, fontWeight: '500', textDecorationLine: 'line-through' }}>{r.name}</Text>
+                        <Text style={{ color: '#6b7280', fontSize: 12 }}>Deleted</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Coach started a workout → prominent Start card */}
+                {msg.startWorkout && (
+                  <View style={{ marginLeft: 42, marginTop: 8 }}>
+                    <Pressable
+                      onPress={() => router.push({ pathname: '/(tabs)/workout', params: { start: msg.startWorkout!.id } })}
+                      className="active:opacity-80"
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#4f46e5', borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16 }}
+                    >
+                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+                        <Play size={15} color="#fff" fill="#fff" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>Start {msg.startWorkout.name}</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 1 }}>Tap to open your live session</Text>
+                      </View>
+                      <ChevronRight size={18} color="#fff" />
+                    </Pressable>
                   </View>
                 )}
 
