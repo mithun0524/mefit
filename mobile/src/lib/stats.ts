@@ -2,12 +2,13 @@ import type { WorkoutRecord } from '@/store/useAppStore';
 
 const DAY = 86400000;
 
-function dayKey(ts: number): string {
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-}
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// Local-calendar day key, ISO-shaped and zero-padded: YYYY-MM-DD (month is 1-indexed).
 function dayKeyD(d: Date): string {
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function dayKey(ts: number): string {
+  return dayKeyD(new Date(ts));
 }
 function sameMonth(ts: number, now: number): boolean {
   const a = new Date(ts), b = new Date(now);
