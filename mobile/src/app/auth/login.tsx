@@ -3,15 +3,23 @@ import { View, Text, TextInput, Pressable } from '@/tw';
 import { useRouter, Link } from 'expo-router';
 import { Mail, Lock, Dumbbell } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
+import { signIn } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const setAuthenticated = useAppStore((state) => state.setAuthenticated);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    if (!email.trim() || !password.trim()) return;
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim() || loading) return;
+    setLoading(true);
+    setError(null);
+    const res = await signIn(email, password);
+    setLoading(false);
+    if (!res.ok) { setError(res.error || 'Could not sign in'); return; }
     setAuthenticated(true);
     router.replace('/(tabs)');
   };
@@ -69,12 +77,17 @@ export default function LoginScreen() {
           </View>
         </View>
 
+        {error ? (
+          <Text className="text-[13px] text-red-400 ml-1 -mt-1">{error}</Text>
+        ) : null}
+
         <Pressable
           onPress={handleLogin}
-          style={{ backgroundColor: '#4f46e5' }}
+          disabled={loading}
+          style={{ backgroundColor: '#4f46e5', opacity: loading ? 0.6 : 1 }}
           className="py-4 rounded-xl items-center justify-center mt-4 active:opacity-85"
         >
-          <Text className="text-white font-semibold text-[15px]">Sign in</Text>
+          <Text className="text-white font-semibold text-[15px]">{loading ? 'Signing in…' : 'Sign in'}</Text>
         </Pressable>
       </View>
 

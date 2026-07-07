@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, type CoachingStyle } from '@/store/useAppStore';
+import { signOutRemote } from '@/lib/auth';
 
 const CARD = { backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 14 } as const;
 const DIVIDER = '#26262c';
@@ -72,12 +73,12 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   const logOut = () => Alert.alert('Log out', 'Log out of your account?', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Log out', style: 'destructive', onPress: () => { onClose(); setAuthenticated(false); router.replace('/'); } },
+    { text: 'Log out', style: 'destructive', onPress: async () => { onClose(); await signOutRemote(); setAuthenticated(false); router.replace('/'); } },
   ]);
 
   const deleteAccount = () => Alert.alert('Delete account', 'This permanently removes your data. This cannot be undone.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: () => { onClose(); setAuthenticated(false); router.replace('/'); } },
+    { text: 'Delete', style: 'destructive', onPress: async () => { onClose(); await signOutRemote(); setAuthenticated(false); router.replace('/'); } },
   ]);
 
   const exportCsv = async () => {

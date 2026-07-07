@@ -3,16 +3,30 @@ import { View, Text, TextInput, Pressable } from '@/tw';
 import { useRouter, Link } from 'expo-router';
 import { Mail, Lock, User, Dumbbell } from 'lucide-react-native';
 import { useAppStore } from '@/store/useAppStore';
+import { signUp } from '@/lib/auth';
 
 export default function SignupScreen() {
   const router = useRouter();
   const setAuthenticated = useAppStore((state) => state.setAuthenticated);
+  const updateProfile = useAppStore((state) => state.updateProfile);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignup = () => {
-    if (!name.trim() || !email.trim() || !password.trim()) return;
+  const handleSignup = async () => {
+    if (!name.trim() || !email.trim() || !password.trim() || loading) return;
+    setLoading(true);
+    setError(null);
+    const res = await signUp(email, password);
+    setLoading(false);
+    if (!res.ok) { setError(res.error || 'Could not create account'); return; }
+    updateProfile({ name: name.trim() });
+    if (res.needsConfirmation) {
+      setError('Check your email to confirm your account, then sign in.');
+      return;
+    }
     setAuthenticated(true);
     router.replace('/onboarding');
   };
@@ -87,12 +101,17 @@ export default function SignupScreen() {
           </View>
         </View>
 
+        {error ? (
+          <Text className="text-[13px] text-red-400 ml-1 -mt-1">{error}</Text>
+        ) : null}
+
         <Pressable
           onPress={handleSignup}
-          style={{ backgroundColor: '#4f46e5' }}
+          disabled={loading}
+          style={{ backgroundColor: '#4f46e5', opacity: loading ? 0.6 : 1 }}
           className="py-4 rounded-xl items-center justify-center mt-4 active:opacity-85"
         >
-          <Text className="text-white font-semibold text-[15px]">Create account</Text>
+          <Text className="text-white font-semibold text-[15px]">{loading ? 'Creating…' : 'Create account'}</Text>
         </Pressable>
       </View>
 
