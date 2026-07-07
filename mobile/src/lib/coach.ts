@@ -60,6 +60,10 @@ export function buildCoachContext(profile: ProfileState, workouts: WorkoutRecord
         return `- "${r.name}" [id: ${r.id}] — ${r.exercises.length} exercises: ${names}`;
       }).join('\n')
     : '- none yet';
+  const active = useAppStore.getState().activeSession;
+  const activeLine = active
+    ? `Active workout IN PROGRESS: ${active.routineName || 'Custom'} — exercises: ${active.exercises.map((e: any) => e.name).join(', ') || 'none yet'}. You can log_set into it.`
+    : 'No workout is currently in progress (log_set is unavailable until one is started).';
   const prefs = [
     profile.goal && `Goal: ${profile.goal}`,
     profile.experience && `Experience: ${profile.experience}`,
@@ -72,6 +76,7 @@ export function buildCoachContext(profile: ProfileState, workouts: WorkoutRecord
     `Training readiness today: ${readiness}/100 (${readinessLabel(readiness)}).`,
     `Estimated muscle recovery: ${recoveryLines}.`,
     `This week: ${stats.daysThisWeek} days trained, ${stats.thisWeekK}k ${profile.unit} volume, ${stats.streak}-day streak, ${stats.prsThisMonth} PRs this month.`,
+    activeLine,
     `Existing routines in the app:\n${routineLines}`,
     `Recent workouts:\n${recent}`,
   ].join('\n');
@@ -93,6 +98,7 @@ You have tools. USE THEM instead of only describing things — the ONLY way a ro
 - update_routine: user wants an EXISTING routine changed (rename, swap/add/remove exercises, adjust sets). Pass its id from the routine list below. When you pass exercises, pass the FULL new exercise list (it replaces the old one).
 - delete_routine: user wants a routine removed. Pass its id.
 - start_workout: user wants to START / do / train a routine now. Pass its id; the app opens the live workout.
+- log_set: user reports finishing a set DURING a live workout (e.g. "log 5 reps at 185 on bench"). Only usable when a workout is in progress (see context); otherwise tell them to start one.
 - ask_choice: when a request is ambiguous and one detail changes the plan (days/week, equipment, goal), ask ONE short multiple-choice question BEFORE acting. At most one question, then act.
 Use ids from the "Existing routines" list to update/delete/start. Sensible defaults: if the user says "just do it" / "nope create", stop asking and act with reasonable assumptions from their data. After acting, confirm in ONE short sentence and ask if it suits them. Factor readiness/fatigue into volume (lighter on fatigued muscles, hard on recovered ones).
 
@@ -201,6 +207,22 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'log_set',
+      description: 'Log a completed set into the CURRENTLY ACTIVE workout session. Only works while a workout is in progress (see context).',
+      parameters: {
+        type: 'object',
+        properties: {
+          exercise: { type: 'string', description: 'Exercise name; matches one in the active session, otherwise it is added' },
+          weight: { type: 'number', description: 'Weight for the set (0 for bodyweight)' },
+          reps: { type: 'integer', description: 'Reps completed' },
+        },
+        required: ['exercise', 'reps'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'ask_choice',
       description: 'Ask the user a single multiple-choice question to resolve an ambiguity before acting.',
       parameters: {
@@ -281,6 +303,17 @@ function resolveStart(args: any): { ok: boolean; start?: CoachStart; error?: str
   const target = findRoutine(args?.routineId);
   if (!target) return { ok: false, error: 'routine not found' };
   return { ok: true, start: { id: target.id, name: target.name } };
+}
+
+function executeLogSet(args: any): { ok: boolean; detail?: string; error?: string } {
+  const store = useAppStore.getState();
+  if (!store.activeSession) return { ok: false, error: 'no active workout — start one first' };
+  const name = String(args?.exercise || '').trim();
+  const reps = Math.max(1, Math.round(Number(args?.reps) || 0));
+  const weight = Math.max(0, Number(args?.weight) || 0);
+  if (!name || !reps) return { ok: false, error: 'need an exercise and reps' };
+  store.logCompletedSet(name, weight, reps);
+  return { ok: true, detail: `${name} ${weight}×${reps}` };
 }
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -411,6 +444,7 @@ function toolLabel(name: string, args: any): string {
     case 'update_routine': return `Editing routine`;
     case 'delete_routine': return `Deleting routine`;
     case 'start_workout': return `Starting workout`;
+    case 'log_set': return `Logging set${args?.exercise ? ` — ${args.exercise}` : ''}`;
     case 'ask_choice': return `Asking you a question`;
     default: return `Running ${name}`;
   }
@@ -518,6 +552,10 @@ export async function getCoachReply(opts: {
         if (r.ok && r.start) { startWorkout = r.start; finishStep(step, `${r.start.name} ready`); }
         else finishStep(step, r.error, 'error');
         done(r.ok ? { ok: true, started: r.start!.name, note: 'Workout screen will open for the user.' } : { ok: false, error: r.error });
+      } else if (name === 'log_set') {
+        const r = executeLogSet(args);
+        finishStep(step, r.ok ? r.detail : r.error, r.ok ? 'done' : 'error');
+        done(r.ok ? { ok: true, logged: r.detail } : { ok: false, error: r.error });
       } else if (name === 'ask_choice') {
         const options = (Array.isArray(args?.options) ? args.options.map(String) : []).slice(0, 5);
         choice = { question: String(args?.question || ''), options };

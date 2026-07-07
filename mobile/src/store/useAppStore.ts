@@ -120,6 +120,14 @@ export interface FeedPost {
   initialComments: Comment[];
 }
 
+// The live in-progress workout. Persisted so a session survives an app restart
+// (resume-workout) and is shared across screens (the coach can log into it).
+export interface ActiveSession {
+  routineName: string | null;
+  exercises: any[]; // live exercises; each set is { weight, reps, completed }
+  startTime: number;
+}
+
 export interface AppState {
   isAuthenticated: boolean;
   profile: ProfileState;
@@ -129,6 +137,7 @@ export interface AppState {
   lastCompletedWorkout: CompletedWorkoutSummary | null;
   energyToday: { date: string; value: 'low' | 'good' | 'high' } | null;
   settings: AppSettings;
+  activeSession: ActiveSession | null;
 
   // Actions
   setAuthenticated: (authenticated: boolean) => void;
@@ -145,6 +154,11 @@ export interface AppState {
   setLastCompletedWorkout: (summary: CompletedWorkoutSummary | null) => void;
   setEnergyToday: (energyToday: { date: string; value: 'low' | 'good' | 'high' } | null) => void;
   updateSettings: (updates: Partial<AppSettings>) => void;
+  // Live workout session
+  startSession: (routineName: string | null, exercises: any[]) => void;
+  endSession: () => void;
+  setSessionExercises: (updater: any[] | ((prev: any[]) => any[])) => void;
+  logCompletedSet: (name: string, weight: number, reps: number) => void;
 }
 
 const INITIAL_SETTINGS: AppSettings = {
@@ -324,6 +338,7 @@ export const useAppStore = create<AppState>()(
       lastCompletedWorkout: null,
       energyToday: null,
       settings: INITIAL_SETTINGS,
+      activeSession: null,
 
       setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
 
@@ -386,6 +401,26 @@ export const useAppStore = create<AppState>()(
       setLastCompletedWorkout: (summary) => set({ lastCompletedWorkout: summary }),
       setEnergyToday: (energyToday) => set({ energyToday }),
       updateSettings: (updates) => set((state) => ({ settings: { ...state.settings, ...updates } })),
+
+      // ── Live workout session ──────────────────────────────
+      startSession: (routineName, exercises) => set({ activeSession: { routineName, exercises, startTime: Date.now() } }),
+      endSession: () => set({ activeSession: null }),
+      setSessionExercises: (updater) => set((state) => {
+        if (!state.activeSession) return {} as any;
+        const exercises = typeof updater === 'function' ? updater(state.activeSession.exercises) : updater;
+        return { activeSession: { ...state.activeSession, exercises } };
+      }),
+      // Append a completed set to the named exercise in the live session
+      // (adds the exercise if it isn't there yet). Used by the coach's log_set tool.
+      logCompletedSet: (name, weight, reps) => set((state) => {
+        if (!state.activeSession) return {} as any;
+        const exercises = [...state.activeSession.exercises];
+        const idx = exercises.findIndex((e: any) => String(e.name).toLowerCase() === name.toLowerCase());
+        const s = { weight, reps, completed: true };
+        if (idx >= 0) exercises[idx] = { ...exercises[idx], sets: [...exercises[idx].sets, s] };
+        else exercises.push({ id: Date.now(), name, isBarbell: false, sets: [s] });
+        return { activeSession: { ...state.activeSession, exercises } };
+      }),
     }),
     {
       name: 'silly-galileo-storage-v5',

@@ -76,12 +76,16 @@ export default function WorkoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const slide = useTabSlide(1);
-  const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine } = useAppStore();
+  const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine,
+    activeSession, startSession, endSession, setSessionExercises } = useAppStore();
 
-  const [activeRoutine, setActiveRoutine] = useState<any | null>(null);
-  const [activeExercises, setActiveExercises] = useState<any[]>([]);
+  // The live session now lives in the store (persists across restarts, shared
+  // with the coach). These aliases keep the rest of this screen unchanged.
+  const activeRoutine = activeSession ? { name: activeSession.routineName } : null;
+  const activeExercises = activeSession?.exercises ?? [];
+  const setActiveExercises = setSessionExercises;
+  const workoutStartTime = activeSession?.startTime ?? null;
   const [restTimer, setRestTimer] = useState<number | null>(null);
-  const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null);
   const [menuOpenRoutineId, setMenuOpenRoutineId] = useState<string | null>(null);
   const [exerciseQuery, setExerciseQuery] = useState('');
   const [exerciseCatalog, setExerciseCatalog] = useState<ExerciseCatalogItem[]>([]);
@@ -150,12 +154,10 @@ export default function WorkoutScreen() {
         completed: false,
       })),
     }));
-    setActiveExercises(exercises);
-    setActiveRoutine(routine);
+    startSession(routine?.name ?? null, exercises);
     setRestTimer(null);
-    setWorkoutStartTime(Date.now());
     setMenuOpenRoutineId(null);
-  }, []);
+  }, [startSession]);
 
   // Coach (or any deep link) can open a live session: /workout?start=<routineId>
   const startParam = useLocalSearchParams<{ start?: string }>().start;
@@ -168,11 +170,9 @@ export default function WorkoutScreen() {
   }, [startParam, routines]);
 
   const endWorkout = useCallback(() => {
-    setActiveRoutine(null);
-    setActiveExercises([]);
+    endSession();
     setRestTimer(null);
-    setWorkoutStartTime(null);
-  }, []);
+  }, [endSession]);
 
   const saveWorkout = useCallback(() => {
     const durationMins = workoutStartTime
