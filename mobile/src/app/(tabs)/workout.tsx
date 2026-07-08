@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { restEndCue } from '@/lib/sound';
 import { nextRpe, sessionVolume } from '@/lib/session';
+import { PREMIUM_CARD } from '@/constants/premium';
 import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
@@ -431,7 +432,7 @@ export default function WorkoutScreen() {
               <Animated.View
                 key={routine.id}
                 entering={FadeInDown.delay(idx * 60).duration(350).springify().damping(14)}
-                style={{ backgroundColor: '#111111', borderWidth: 1, borderColor: '#222222', borderRadius: 20, overflow: 'visible' }}
+                style={{ ...PREMIUM_CARD, borderRadius: 20, overflow: 'visible' }}
               >
                 {/* Left accent strip */}
                 <View style={{ position: 'absolute', left: 0, top: 16, bottom: 16, width: 3, backgroundColor: '#4f46e5', borderRadius: 4, opacity: 0.7 }} />
@@ -823,7 +824,7 @@ export default function WorkoutScreen() {
               <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Add exercise</Text>
             </Pressable>
           ) : (
-            <View style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 16, overflow: 'hidden' }}>
+            <View style={{ ...PREMIUM_CARD, borderRadius: 18, overflow: 'hidden' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#313138' }}>
                 <Search size={14} color="#525252" />
                 <TextInput

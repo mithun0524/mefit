@@ -12,6 +12,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useUI } from '@/lib/ui';
 import { useTabSlide } from '@/lib/useSlideIn';
 import ExerciseProgress from '@/components/ExerciseProgress';
+import { PREMIUM_CARD } from '@/constants/premium';
 
 // Consistency grid mock data
 const HEATMAP_DATA = [
@@ -149,7 +150,7 @@ export default function ProfileScreen() {
         <Text className="text-3xl font-bold text-white tracking-tight">Profile</Text>
         <Pressable
           onPress={() => useUI.getState().openSettings()}
-          style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
+          style={{ ...PREMIUM_CARD }}
           className="w-10 h-10 rounded-xl items-center justify-center active:opacity-70"
         >
           <Settings size={18} color="#a1a1aa" />
@@ -218,7 +219,7 @@ export default function ProfileScreen() {
             </Pressable>
             <Pressable
               onPress={shareProfile}
-              style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
+              style={{ ...PREMIUM_CARD }}
               className="flex-1 py-3 rounded-xl items-center justify-center active:opacity-70"
             >
               <Text className="text-neutral-200 font-semibold text-[14px]">Share profile</Text>
@@ -258,8 +259,8 @@ export default function ProfileScreen() {
               {workouts.map((workout) => (
                 <Pressable
                   key={workout.id}
-                  style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
-                  className="rounded-xl p-5 mb-4 active:opacity-80"
+                  style={{ ...PREMIUM_CARD }}
+                  className="rounded-2xl p-5 mb-4 active:opacity-80"
                 >
                   <View className="flex-row justify-between items-start mb-2">
                     <Text className="text-white font-semibold text-base tracking-tight">{workout.name}</Text>
@@ -294,7 +295,7 @@ export default function ProfileScreen() {
               <ExerciseProgress workouts={workouts} />
 
               {/* Consistency Heatmap */}
-              <View style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-5 mb-4">
+              <View style={{ ...PREMIUM_CARD }} className="rounded-2xl p-5 mb-4">
                 <View className="flex-row justify-between items-center mb-4">
                   <View className="flex-row items-center">
                     <Calendar size={16} color="#818cf8" className="mr-1.5" />
@@ -322,7 +323,7 @@ export default function ProfileScreen() {
               </View>
 
               {/* Muscle Volume Split */}
-              <View style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }} className="rounded-xl p-5">
+              <View style={{ ...PREMIUM_CARD }} className="rounded-2xl p-5">
                 <View className="flex-row justify-between items-center mb-5">
                   <View className="flex-row items-center">
                     <Activity size={16} color="#818cf8" className="mr-1.5" />
@@ -356,8 +357,8 @@ export default function ProfileScreen() {
               {routines.map((routine) => (
                 <View
                   key={routine.id}
-                  style={{ backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138' }}
-                  className="rounded-xl p-5 mb-4"
+                  style={{ ...PREMIUM_CARD }}
+                  className="rounded-2xl p-5 mb-4"
                 >
                   <View className="flex-row justify-between items-start mb-2">
                     <View className="flex-1 pr-3">

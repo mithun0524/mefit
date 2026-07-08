@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Pressable, Image, ScrollView } from '@/tw';
 import { Alert, Share, Dimensions, ScrollView as RNScrollView } from 'react-native';
+import { PREMIUM_CARD } from '@/constants/premium';
 import {
   Heart, MessageCircle, Share2, Bookmark,
   Award, Copy, ChevronLeft, ChevronRight, Dumbbell, MoreHorizontal
@@ -93,7 +94,7 @@ export default function PostCard({ post }: { post: FeedPost }) {
   const isCarousel = post.images.length > 1;
 
   return (
-    <View className="bg-[#1c1c21] border border-[#313138] rounded-xl mb-4 overflow-hidden">
+    <View style={PREMIUM_CARD} className="rounded-2xl mb-4 overflow-hidden">
 
       {/* ── Header ── */}
       <View className="flex-row items-center px-4 py-3">
