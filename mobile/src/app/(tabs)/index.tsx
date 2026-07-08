@@ -7,6 +7,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { StyleSheet } from 'react-native';
+import Press from '@/components/Press';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
@@ -169,10 +170,10 @@ export default function DashboardScreen() {
           </Text>
 
           <View className="flex-row gap-3">
-            <Pressable onPress={() => router.push('/(tabs)/workout')} style={{ backgroundColor: '#4f46e5' }} className="px-5 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-80">
+            <Press onPress={() => router.push('/(tabs)/workout')} accessibilityLabel="Start routine" style={{ backgroundColor: '#4f46e5', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
               <Text className="text-white font-semibold text-[13px] mr-1.5">Start routine</Text>
               <ArrowRight size={13} color="white" />
-            </Pressable>
+            </Press>
             <Pressable
               onPress={() => router.push({ pathname: '/(tabs)/coach', params: { q: `Why is my training readiness ${readiness}% today, and what should I focus on?` } })}
               style={{ borderWidth: 1, borderColor: '#313138' }}

@@ -5,6 +5,7 @@ import { Mail, Lock, Dumbbell } from 'lucide-react-native';
 import { Alert } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
 import { signIn, resetPassword } from '@/lib/auth';
+import Press from '@/components/Press';
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -99,15 +100,14 @@ export default function LoginScreen() {
           <Text className="text-[13px] text-red-400 ml-1">{error}</Text>
         ) : null}
 
-        <Pressable
+        <Press
           onPress={handleLogin}
           disabled={loading}
           accessibilityLabel="Sign in"
-          style={{ backgroundColor: '#4f46e5', opacity: loading ? 0.6 : 1 }}
-          className="py-4 rounded-xl items-center justify-center mt-4 active:opacity-85"
+          style={{ backgroundColor: '#4f46e5', opacity: loading ? 0.6 : 1, paddingVertical: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 16 }}
         >
           <Text className="text-white font-semibold text-[15px]">{loading ? 'Signing in…' : 'Sign in'}</Text>
-        </Pressable>
+        </Press>
       </View>
 
       <View className="flex-row justify-center mt-10 gap-1.5">
