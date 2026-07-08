@@ -136,3 +136,13 @@ test('deriveDashboardStats is all-zero with no workouts', () => {
 test('todayKey is a stable YYYY-MM-DD string', () => {
   assert.match(todayKey(), /^\d{4}-\d{2}-\d{2}$/);
 });
+
+test('deriveDashboardStats week order follows firstDayMonday', () => {
+  const mon = deriveDashboardStats([], Date.now(), true);
+  assert.deepEqual(mon.weekLabels, ['M', 'T', 'W', 'T', 'F', 'S', 'S']);
+  const sun = deriveDashboardStats([], Date.now(), false);
+  assert.deepEqual(sun.weekLabels, ['S', 'M', 'T', 'W', 'T', 'F', 'S']);
+  // weekDots always has 7 entries aligned to the labels
+  assert.equal(mon.weekDots.length, 7);
+  assert.equal(sun.weekDots.length, 7);
+});

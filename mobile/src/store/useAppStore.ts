@@ -35,7 +35,7 @@ export interface AppSettings {
   firstDayMonday: boolean;
 }
 
-export interface LoggedSet { weight: number; reps: number; completed: boolean }
+export interface LoggedSet { weight: number; reps: number; completed: boolean; isWarmup?: boolean; rpe?: number }
 export interface LoggedExercise { name: string; muscles?: string[]; sets: LoggedSet[] }
 
 export interface WorkoutRecord {

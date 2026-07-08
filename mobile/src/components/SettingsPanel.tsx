@@ -7,6 +7,7 @@ import Animated, { SlideInRight, SlideOutRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore, type CoachingStyle } from '@/store/useAppStore';
 import { signOutRemote } from '@/lib/auth';
+import { setWorkoutReminder } from '@/lib/notifications';
 
 const CARD = { backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 14 } as const;
 const DIVIDER = '#26262c';
@@ -70,6 +71,18 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const { profile, workouts, settings, updateProfile, updateSettings, setAuthenticated } = useAppStore();
   const set = (patch: any) => updateSettings(patch);
+
+  // Schedule/cancel the daily reminder; revert the toggle if it can't be enabled.
+  const onReminders = async (v: boolean) => {
+    set({ workoutReminders: v });
+    const active = await setWorkoutReminder(v);
+    if (v && !active) {
+      set({ workoutReminders: false });
+      Alert.alert('Reminders unavailable', Platform.OS === 'web'
+        ? 'Workout reminders work in the iOS/Android app, not on web.'
+        : 'Allow notifications for this app in your system settings, then try again.');
+    }
+  };
 
   const logOut = () => Alert.alert('Log out', 'Log out of your account?', [
     { text: 'Cancel', style: 'cancel' },
@@ -162,7 +175,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
         <Section title="Notifications">
           <ToggleRow first icon={<Bell size={17} color="#818cf8" />} label="Personal record alerts" value={settings.prAlerts} onChange={(v: boolean) => set({ prAlerts: v })} />
-          <ToggleRow icon={<Bell size={17} color="#818cf8" />} label="Workout reminders" sub="Delivered on the device build" value={settings.workoutReminders} onChange={(v: boolean) => set({ workoutReminders: v })} />
+          <ToggleRow icon={<Bell size={17} color="#818cf8" />} label="Workout reminders" sub="Daily 6pm nudge (device only)" value={settings.workoutReminders} onChange={onReminders} />
         </Section>
 
         <Section title="Privacy">

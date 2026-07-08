@@ -10,6 +10,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { ExerciseCatalogItem, loadExerciseCatalog } from '@/lib/exerciseCatalog';
 import { exerciseBests, detectPRs } from '@/lib/history';
 import * as Haptics from 'expo-haptics';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { restEndCue } from '@/lib/sound';
 import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
@@ -77,7 +79,7 @@ export default function WorkoutScreen() {
   const insets = useSafeAreaInsets();
   const slide = useTabSlide(1);
   const { routines, workouts, addWorkout, setLastCompletedWorkout, deleteRoutine, duplicateRoutine,
-    activeSession, startSession, endSession, setSessionExercises } = useAppStore();
+    activeSession, startSession, endSession, setSessionExercises, settings } = useAppStore();
 
   // The live session now lives in the store (persists across restarts, shared
   // with the coach). These aliases keep the rest of this screen unchanged.
@@ -103,15 +105,26 @@ export default function WorkoutScreen() {
     return () => { active = false; };
   }, []);
 
-  // Rest timer countdown
+  // Rest timer countdown — plays the rest-end cue when it reaches 0 (if enabled).
   useEffect(() => {
     if (restTimer === null || restTimer <= 0) {
-      if (restTimer === 0) setRestTimer(null);
+      if (restTimer === 0) {
+        if (settings.restSound) restEndCue();
+        setRestTimer(null);
+      }
       return;
     }
     const id = setInterval(() => setRestTimer(p => (p ? p - 1 : 0)), 1000);
     return () => clearInterval(id);
-  }, [restTimer]);
+  }, [restTimer, settings.restSound]);
+
+  // Keep the screen awake during a live workout (if enabled).
+  useEffect(() => {
+    const on = !!activeSession && settings.keepAwake;
+    if (on) activateKeepAwakeAsync('workout').catch(() => {});
+    else deactivateKeepAwake('workout').catch(() => {});
+    return () => { deactivateKeepAwake('workout').catch(() => {}); };
+  }, [activeSession, settings.keepAwake]);
 
   // Live elapsed time ticker
   useEffect(() => {
@@ -131,10 +144,11 @@ export default function WorkoutScreen() {
     const total = activeExercises.reduce((s, e) => s + e.sets.length, 0);
     const done = activeExercises.reduce((s, e) => s + e.sets.filter((x: any) => x.completed).length, 0);
     const vol = activeExercises.reduce((s, e) => s + e.sets.reduce((ss: number, x: any) =>
-      x.completed ? ss + (Number(x.weight) || 0) * (Number(x.reps) || 0) : ss, 0), 0);
+      (x.completed && (settings.warmupInStats || !x.isWarmup))
+        ? ss + (Number(x.weight) || 0) * (Number(x.reps) || 0) : ss, 0), 0);
     const mins = workoutStartTime ? Math.max(0, Math.floor((Date.now() - workoutStartTime) / 60000)) : 0;
     return { total, done, vol, mins, pct: total > 0 ? done / total : 0 };
-  }, [activeExercises, workoutStartTime, elapsedTick]);
+  }, [activeExercises, workoutStartTime, elapsedTick, settings.warmupInStats]);
 
   // ── Actions ────────────────────────────────────────────────
   const startRoutine = useCallback((routine: any) => {
@@ -189,14 +203,22 @@ export default function WorkoutScreen() {
         weight: Number(s.weight) || 0,
         reps: Number(s.reps) || 0,
         completed: Boolean(s.completed),
+        isWarmup: Boolean(s.isWarmup),
+        ...(s.rpe != null ? { rpe: Number(s.rpe) } : {}),
       }));
       totalSets += sets.length;
-      sets.forEach(s => { if (s.completed) { setsCompleted++; totalVol += s.weight * s.reps; } });
+      sets.forEach(s => {
+        if (!s.completed) return;
+        setsCompleted++;
+        // Warm-up sets only count toward volume when the setting includes them.
+        if (settings.warmupInStats || !s.isWarmup) totalVol += s.weight * s.reps;
+      });
       return { name: ex.name, muscles: ex.muscles, sets };
     });
 
     // Real PRs: sets that beat this exercise's prior all-time best (estimated 1RM).
-    const prs = detectPRs(exerciseBests(workouts), loggedExercises).count;
+    const prNames = detectPRs(exerciseBests(workouts), loggedExercises).names;
+    const prs = prNames.length;
 
     const names = activeExercises.map(e => e.name);
 
@@ -223,9 +245,15 @@ export default function WorkoutScreen() {
     });
 
     haptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+
+    // PR alerts (if enabled) — celebrate before the summary screen.
+    if (settings.prAlerts && prs > 0) {
+      Alert.alert('🎉 New PR!', `${prNames.slice(0, 3).join(', ')}${prs > 3 ? ` +${prs - 3} more` : ''}`);
+    }
+
     endWorkout();
     router.push('/workout-summary' as any);
-  }, [activeExercises, workoutStartTime, activeRoutine, workouts, addWorkout, setLastCompletedWorkout, endWorkout, router]);
+  }, [activeExercises, workoutStartTime, activeRoutine, workouts, addWorkout, setLastCompletedWorkout, endWorkout, router, settings.warmupInStats, settings.prAlerts]);
 
   const toggleSetComplete = useCallback((eIdx: number, sIdx: number) => {
     setActiveExercises(prev => {
@@ -265,6 +293,27 @@ export default function WorkoutScreen() {
     setActiveExercises(prev => prev.map((e, i) => i !== eIdx ? e : {
       ...e,
       sets: e.sets.map((s: any, j: number) => j !== sIdx ? s : { ...s, [field]: val }),
+    }));
+  }, []);
+
+  // Tap the set number to flag it a warm-up (excluded from volume unless the
+  // warm-up-in-stats setting is on).
+  const toggleWarmup = useCallback((eIdx: number, sIdx: number) => {
+    setActiveExercises(prev => prev.map((e, i) => i !== eIdx ? e : {
+      ...e,
+      sets: e.sets.map((s: any, j: number) => j !== sIdx ? s : { ...s, isWarmup: !s.isWarmup }),
+    }));
+  }, []);
+
+  // Tap the RPE pill to cycle 7 → 8 → 9 → 10 → off.
+  const cycleRpe = useCallback((eIdx: number, sIdx: number) => {
+    setActiveExercises(prev => prev.map((e, i) => i !== eIdx ? e : {
+      ...e,
+      sets: e.sets.map((s: any, j: number) => {
+        if (j !== sIdx) return s;
+        const next = s.rpe == null ? 7 : s.rpe >= 10 ? undefined : s.rpe + 1;
+        return { ...s, rpe: next };
+      }),
     }));
   }, []);
 
@@ -655,12 +704,12 @@ export default function WorkoutScreen() {
                         backgroundColor: set.completed ? 'rgba(16,185,129,0.08)' : 'transparent',
                       }}
                     >
-                      {/* Set number — plain, matching the editor */}
-                      <View style={{ width: 32, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 14, fontWeight: '600', color: set.completed ? '#10b981' : '#71717a' }}>
-                          {sIdx + 1}
+                      {/* Set number — tap to toggle warm-up (shows "W", amber) */}
+                      <Pressable onPress={() => toggleWarmup(eIdx, sIdx)} style={{ width: 32, alignItems: 'center' }}>
+                        <Text style={{ fontSize: set.isWarmup ? 13 : 14, fontWeight: '700', color: set.isWarmup ? '#f59e0b' : set.completed ? '#10b981' : '#71717a' }}>
+                          {set.isWarmup ? 'W' : sIdx + 1}
                         </Text>
-                      </View>
+                      </Pressable>
 
                       {/* Weight */}
                       <View style={{ flex: 1, paddingHorizontal: 4 }}>
@@ -693,6 +742,21 @@ export default function WorkoutScreen() {
                           onChangeText={val => updateSet(eIdx, sIdx, 'reps', val)}
                         />
                       </View>
+
+                      {/* RPE (rate of perceived exertion) — only when enabled */}
+                      {settings.rpeLogging && (
+                        <Pressable onPress={() => cycleRpe(eIdx, sIdx)} style={{ width: 42, alignItems: 'center' }}>
+                          <View style={{
+                            paddingVertical: 3, paddingHorizontal: 7, borderRadius: 8, borderWidth: 1,
+                            borderColor: set.rpe != null ? '#4f46e5' : '#313138',
+                            backgroundColor: set.rpe != null ? 'rgba(99,102,241,0.15)' : 'transparent',
+                          }}>
+                            <Text style={{ fontSize: 11.5, fontWeight: '700', color: set.rpe != null ? '#818cf8' : '#52525b' }}>
+                              {set.rpe != null ? `@${set.rpe}` : 'RPE'}
+                            </Text>
+                          </View>
+                        </Pressable>
+                      )}
 
                       {/* Complete toggle */}
                       <AnimatedCheckmark completed={set.completed} onPress={() => toggleSetComplete(eIdx, sIdx)} />

@@ -25,7 +25,7 @@ const CARD = { backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138
 export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile, workouts, routines, energyToday, setEnergyToday } = useAppStore();
+  const { profile, workouts, routines, energyToday, setEnergyToday, settings } = useAppStore();
   const { name, avatarImage } = profile;
   const slide = useTabSlide(0);
 
@@ -34,7 +34,7 @@ export default function DashboardScreen() {
   const energy: Energy = energyToday && energyToday.date === tk ? energyToday.value : null;
   const setEnergy = (v: Energy) => setEnergyToday(v ? { date: tk, value: v } : null);
 
-  const stats = useMemo(() => deriveDashboardStats(workouts), [workouts]);
+  const stats = useMemo(() => deriveDashboardStats(workouts, Date.now(), settings.firstDayMonday), [workouts, settings.firstDayMonday]);
 
   // Device health signals (HRV/sleep) — null on web, real on a device build.
   const [health, setHealth] = useState<HealthSignals | null>(null);
@@ -189,7 +189,7 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View className="flex-row justify-between mb-4">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+            {stats.weekLabels.map((day, idx) => {
               const isActive = stats.weekDots[idx];
               return (
                 <View
