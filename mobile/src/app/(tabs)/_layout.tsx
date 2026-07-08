@@ -1,5 +1,6 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Home, Dumbbell, User, MessageCircle, Users } from 'lucide-react-native';
 import { useUI } from '@/lib/ui';
@@ -14,15 +15,24 @@ export default function TabLayout() {
         headerShown: false,
         animation: 'shift', // both screens render during the switch (direction-aware)
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#818cf8', // Indigo-400 — single accent
-        tabBarInactiveTintColor: '#52525b', // Zinc-600 — muted inactive
+        tabBarActiveTintColor: '#a5b4fc', // Indigo-300 — single accent
+        tabBarInactiveTintColor: '#5b5b63', // muted inactive
+        // Frosted glass bar — content scrolls beneath it (iOS material).
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#171717', // hairline, matches screen headers
-          backgroundColor: '#09090b', // screen background
-          height: 60,
+          position: 'absolute',
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: 'rgba(255,255,255,0.09)',
+          backgroundColor: 'transparent',
+          elevation: 0,
+          height: 62,
           paddingTop: 10,
         },
+        tabBarBackground: () => (
+          <View style={StyleSheet.absoluteFill}>
+            <BlurView tint="dark" intensity={40} style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(9,9,11,0.55)' }]} />
+          </View>
+        ),
         sceneStyle: { backgroundColor: '#09090b' },
       }}
     >

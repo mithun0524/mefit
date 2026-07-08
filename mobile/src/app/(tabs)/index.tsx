@@ -4,6 +4,7 @@ import { Flame, Activity, TrendingUp, Sparkles, ArrowRight, Trophy } from 'lucid
 import MuscleHeatmap from '@/components/MuscleHeatmap';
 import ReadinessRing from '@/components/ReadinessRing';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
@@ -20,7 +21,15 @@ const ENERGY_OPTIONS: { key: Exclude<Energy, null>; label: string }[] = [
 ];
 
 const WEEK_GOAL = 7;
-const CARD = { backgroundColor: '#1c1c21', borderWidth: 1, borderColor: '#313138', borderRadius: 16, padding: 20 } as const;
+// Elevated "material" card — lighter than the canvas, hairline light border, soft drop shadow.
+const CARD = {
+  backgroundColor: '#17171c',
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.07)',
+  borderRadius: 22,
+  padding: 20,
+  boxShadow: '0px 14px 34px -14px rgba(0,0,0,0.75)',
+} as const;
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -67,8 +76,14 @@ export default function DashboardScreen() {
 
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
+      {/* Ambient indigo glow behind the top of the screen — subtle depth */}
+      <LinearGradient
+        colors={['rgba(99,102,241,0.18)', 'rgba(99,102,241,0.04)', 'transparent']}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
+        pointerEvents="none"
+      />
       {/* Header */}
-      <View style={{ paddingTop: insets.top + 20, paddingBottom: 10, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717' }} className="flex-row justify-between items-center z-10">
+      <View style={{ paddingTop: insets.top + 20, paddingBottom: 10, paddingHorizontal: 20 }} className="flex-row justify-between items-center z-10">
         <View>
           <Text className="text-2xl font-bold text-white tracking-tight">Overview</Text>
           <Text className="text-neutral-500 text-[13px] mt-0.5">Ready to crush it today?</Text>
@@ -90,7 +105,7 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 36 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
 
         {/* ① Training readiness — hero */}
         <Animated.View entering={FadeInDown.duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
