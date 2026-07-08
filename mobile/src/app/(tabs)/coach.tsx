@@ -15,6 +15,7 @@ import type { CoachCreatedRoutine, CoachDeleted, CoachStart, CoachChoice, CoachR
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
 import GlassHeader from '@/components/GlassHeader';
+import Press from '@/components/Press';
 
 type Attachment = { id: string; type: 'image' | 'file'; uri: string; name: string };
 type Message = {
@@ -561,16 +562,16 @@ export default function CoachScreen() {
             <Text style={{ color: '#52525b', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10, marginLeft: 2 }}>TRY ASKING</Text>
             <View style={{ gap: 8 }}>
               {SUGGESTED_PROMPTS.map((p, i) => (
-                <Pressable
+                <Press
                   key={i}
                   onPress={() => sendMessage(p)}
                   accessibilityLabel={p}
-                  className="active:opacity-70"
+                  scaleTo={0.97}
                   style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#141418', borderWidth: 1, borderColor: '#26262c', borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16 }}
                 >
                   <Text style={{ color: '#e4e4e7', fontSize: 14, fontWeight: '500' }}>{p}</Text>
                   <ChevronRight size={16} color="#52525b" />
-                </Pressable>
+                </Press>
               ))}
             </View>
           </View>

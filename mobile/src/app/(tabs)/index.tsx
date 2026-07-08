@@ -141,14 +141,14 @@ export default function DashboardScreen() {
               {ENERGY_OPTIONS.map(opt => {
                 const active = energy === opt.key;
                 return (
-                  <Pressable
+                  <Press
                     key={opt.key}
                     onPress={() => setEnergy(active ? null : opt.key)}
-                    style={{ backgroundColor: active ? '#4f46e5' : '#26262c' }}
-                    className="flex-1 py-2.5 rounded-lg items-center active:opacity-70"
+                    accessibilityLabel={`Energy ${opt.label}`}
+                    style={{ flex: 1, backgroundColor: active ? '#4f46e5' : '#26262c', paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}
                   >
                     <Text style={{ color: active ? '#ffffff' : '#a1a1aa' }} className="font-medium text-[13px]">{opt.label}</Text>
-                  </Pressable>
+                  </Press>
                 );
               })}
             </View>
@@ -174,13 +174,13 @@ export default function DashboardScreen() {
               <Text className="text-white font-semibold text-[13px] mr-1.5">Start routine</Text>
               <ArrowRight size={13} color="white" />
             </Press>
-            <Pressable
+            <Press
               onPress={() => router.push({ pathname: '/(tabs)/coach', params: { q: `Why is my training readiness ${readiness}% today, and what should I focus on?` } })}
-              style={{ borderWidth: 1, borderColor: '#313138' }}
-              className="px-4 py-2.5 rounded-xl flex-row items-center justify-center active:opacity-70"
+              accessibilityLabel="Ask why"
+              style={{ borderWidth: 1, borderColor: '#313138', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
             >
               <Text className="text-neutral-300 font-medium text-[13px]">Ask why</Text>
-            </Pressable>
+            </Press>
           </View>
         </Animated.View>
 

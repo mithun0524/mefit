@@ -15,6 +15,7 @@ import { restEndCue } from '@/lib/sound';
 import { nextRpe, sessionVolume } from '@/lib/session';
 import { PREMIUM_CARD } from '@/constants/premium';
 import GlassHeader from '@/components/GlassHeader';
+import Press from '@/components/Press';
 import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
@@ -506,14 +507,14 @@ export default function WorkoutScreen() {
                   )}
 
                   {/* Start CTA */}
-                  <Pressable
+                  <Press
                     onPress={() => startRoutine(routine)}
+                    accessibilityLabel={`Start ${routine.name}`}
                     style={{ backgroundColor: '#4f46e5', paddingVertical: 14, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                    className="active:opacity-80"
                   >
                     <Play size={14} color="white" fill="white" />
                     <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Start routine</Text>
-                  </Pressable>
+                  </Press>
                 </View>
               </Animated.View>
             ))}
