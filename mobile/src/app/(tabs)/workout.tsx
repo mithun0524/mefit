@@ -12,6 +12,7 @@ import { exerciseBests, detectPRs } from '@/lib/history';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { restEndCue } from '@/lib/sound';
+import { nextRpe, sessionVolume } from '@/lib/session';
 import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
@@ -143,9 +144,7 @@ export default function WorkoutScreen() {
   const workoutStats = useMemo(() => {
     const total = activeExercises.reduce((s, e) => s + e.sets.length, 0);
     const done = activeExercises.reduce((s, e) => s + e.sets.filter((x: any) => x.completed).length, 0);
-    const vol = activeExercises.reduce((s, e) => s + e.sets.reduce((ss: number, x: any) =>
-      (x.completed && (settings.warmupInStats || !x.isWarmup))
-        ? ss + (Number(x.weight) || 0) * (Number(x.reps) || 0) : ss, 0), 0);
+    const vol = sessionVolume(activeExercises, settings.warmupInStats);
     const mins = workoutStartTime ? Math.max(0, Math.floor((Date.now() - workoutStartTime) / 60000)) : 0;
     return { total, done, vol, mins, pct: total > 0 ? done / total : 0 };
   }, [activeExercises, workoutStartTime, elapsedTick, settings.warmupInStats]);
@@ -207,14 +206,12 @@ export default function WorkoutScreen() {
         ...(s.rpe != null ? { rpe: Number(s.rpe) } : {}),
       }));
       totalSets += sets.length;
-      sets.forEach(s => {
-        if (!s.completed) return;
-        setsCompleted++;
-        // Warm-up sets only count toward volume when the setting includes them.
-        if (settings.warmupInStats || !s.isWarmup) totalVol += s.weight * s.reps;
-      });
+      sets.forEach(s => { if (s.completed) setsCompleted++; });
       return { name: ex.name, muscles: ex.muscles, sets };
     });
+
+    // Volume via the shared, unit-tested rule (warm-ups excluded unless enabled).
+    totalVol = sessionVolume(loggedExercises, settings.warmupInStats);
 
     // Real PRs: sets that beat this exercise's prior all-time best (estimated 1RM).
     const prNames = detectPRs(exerciseBests(workouts), loggedExercises).names;
@@ -309,11 +306,7 @@ export default function WorkoutScreen() {
   const cycleRpe = useCallback((eIdx: number, sIdx: number) => {
     setActiveExercises(prev => prev.map((e, i) => i !== eIdx ? e : {
       ...e,
-      sets: e.sets.map((s: any, j: number) => {
-        if (j !== sIdx) return s;
-        const next = s.rpe == null ? 7 : s.rpe >= 10 ? undefined : s.rpe + 1;
-        return { ...s, rpe: next };
-      }),
+      sets: e.sets.map((s: any, j: number) => j !== sIdx ? s : { ...s, rpe: nextRpe(s.rpe) }),
     }));
   }, []);
 

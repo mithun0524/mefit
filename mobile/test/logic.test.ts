@@ -5,6 +5,7 @@ import { estimated1RM, exerciseBests, detectPRs, exerciseVolumeSeries } from '..
 import { computeReadiness, readinessLabel, readinessColor } from '../src/lib/readiness';
 import { computeMuscleRecovery } from '../src/lib/recovery';
 import { deriveDashboardStats, todayKey } from '../src/lib/stats';
+import { nextRpe, sessionVolume } from '../src/lib/session';
 
 // ── Minimal WorkoutRecord factory (shape matches the store) ──
 const set = (weight: number, reps: number, completed = true) => ({ weight, reps, completed });
@@ -135,6 +136,30 @@ test('deriveDashboardStats is all-zero with no workouts', () => {
 
 test('todayKey is a stable YYYY-MM-DD string', () => {
   assert.match(todayKey(), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+// ─────────────────────────────────────────────────────────────
+//  session.ts — RPE cycle + warm-up-aware volume
+// ─────────────────────────────────────────────────────────────
+test('nextRpe cycles 7 → 8 → 9 → 10 → off', () => {
+  assert.equal(nextRpe(undefined), 7);
+  assert.equal(nextRpe(7), 8);
+  assert.equal(nextRpe(9), 10);
+  assert.equal(nextRpe(10), undefined);
+});
+
+test('sessionVolume counts only completed sets', () => {
+  const ex = [{ sets: [set(100, 5), set(100, 5, false)] }];
+  assert.equal(sessionVolume(ex as any, true), 500);
+});
+
+test('sessionVolume excludes warm-ups unless includeWarmup', () => {
+  const ex = [{ sets: [
+    { weight: 40, reps: 10, completed: true, isWarmup: true },
+    { weight: 100, reps: 5, completed: true },
+  ] }];
+  assert.equal(sessionVolume(ex as any, false), 500);        // warm-up excluded
+  assert.equal(sessionVolume(ex as any, true), 500 + 400);   // warm-up included
 });
 
 test('deriveDashboardStats week order follows firstDayMonday', () => {
