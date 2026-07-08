@@ -14,6 +14,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { restEndCue } from '@/lib/sound';
 import { nextRpe, sessionVolume } from '@/lib/session';
 import { PREMIUM_CARD } from '@/constants/premium';
+import GlassHeader from '@/components/GlassHeader';
 import { useTabSlide } from '@/lib/useSlideIn';
 
 // Haptics are native-only; no-op on web.
@@ -350,19 +351,21 @@ export default function WorkoutScreen() {
     return (
       <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
 
-        {/* ── Header ── */}
-        <View style={{ paddingTop: insets.top + 20, paddingBottom: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#171717', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text className="text-3xl font-bold text-white tracking-tight">Workouts</Text>
-          <Pressable
-            onPress={() => router.push('/routine/new')}
-            style={{ width: 44, height: 44, borderRadius: 100, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' }}
-            className="active:opacity-75"
-          >
-            <Plus size={22} color="white" />
-          </Pressable>
-        </View>
+        {/* ── Frosted glass header ── */}
+        <GlassHeader>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text className="text-[30px] font-bold text-white" style={{ letterSpacing: -0.6 }}>Workouts</Text>
+            <Pressable
+              onPress={() => router.push('/routine/new')}
+              style={{ width: 44, height: 44, borderRadius: 100, backgroundColor: '#4f46e5', alignItems: 'center', justifyContent: 'center' }}
+              className="active:opacity-75"
+            >
+              <Plus size={22} color="white" />
+            </Pressable>
+          </View>
+        </GlassHeader>
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100, paddingTop: 24 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120, paddingTop: insets.top + 100 }}>
 
           {/* ── Stats Row — 3 chips side-by-side ── */}
           <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, marginBottom: 20 }}>

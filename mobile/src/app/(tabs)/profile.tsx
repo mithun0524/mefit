@@ -13,6 +13,7 @@ import { useUI } from '@/lib/ui';
 import { useTabSlide } from '@/lib/useSlideIn';
 import ExerciseProgress from '@/components/ExerciseProgress';
 import { PREMIUM_CARD } from '@/constants/premium';
+import GlassHeader from '@/components/GlassHeader';
 
 // Consistency grid mock data
 const HEATMAP_DATA = [
@@ -142,22 +143,21 @@ export default function ProfileScreen() {
 
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, enterStyle]}>
-      {/* Header */}
-      <View
-        style={{ paddingTop: insets.top + 20, backgroundColor: '#09090b', borderBottomWidth: 1, borderBottomColor: '#171717' }}
-        className="pb-4 px-5 z-10 flex-row justify-between items-center"
-      >
-        <Text className="text-3xl font-bold text-white tracking-tight">Profile</Text>
-        <Pressable
-          onPress={() => useUI.getState().openSettings()}
-          style={{ ...PREMIUM_CARD }}
-          className="w-10 h-10 rounded-xl items-center justify-center active:opacity-70"
-        >
-          <Settings size={18} color="#a1a1aa" />
-        </Pressable>
-      </View>
+      {/* Frosted glass header */}
+      <GlassHeader>
+        <View className="flex-row justify-between items-center">
+          <Text className="text-[30px] font-bold text-white" style={{ letterSpacing: -0.6 }}>Profile</Text>
+          <Pressable
+            onPress={() => useUI.getState().openSettings()}
+            style={{ ...PREMIUM_CARD }}
+            className="w-10 h-10 rounded-xl items-center justify-center active:opacity-70"
+          >
+            <Settings size={18} color="#a1a1aa" />
+          </Pressable>
+        </View>
+      </GlassHeader>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 92, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Profile Info - Instagram Layout */}
         <View className="px-5 pt-6 pb-4">
           <View className="flex-row items-center justify-between mb-5">

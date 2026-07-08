@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import GlassHeader from '@/components/GlassHeader';
 import StoriesRow from '@/components/community/StoriesRow';
 import PostCard from '@/components/community/PostCard';
 import CreatePostModal from '@/components/community/CreatePostModal';
@@ -30,9 +31,10 @@ export default function FeedScreen() {
 
   return (
     <Animated.View style={[{ flex: 1, backgroundColor: '#09090b' }, slide]}>
-      {/* Header */}
-      <View style={{ paddingTop: insets.top + 20 }} className="pb-3 px-5 bg-[#09090b] border-b border-neutral-900 z-10 flex-row items-center justify-between">
-        <Text className="text-2xl font-bold text-white tracking-tight">Community</Text>
+      {/* Frosted glass header */}
+      <GlassHeader>
+        <View className="flex-row items-center justify-between">
+        <Text className="text-[30px] font-bold text-white" style={{ letterSpacing: -0.6 }}>Community</Text>
         <View className="flex-row items-center gap-3">
           <Pressable onPress={() => router.push('/search')} className="w-9 h-9 bg-neutral-900 border border-neutral-800 rounded-full items-center justify-center active:opacity-70">
             <Search size={16} color="#a1a1aa" />
@@ -44,9 +46,10 @@ export default function FeedScreen() {
             <Plus size={18} color="white" />
           </Pressable>
         </View>
-      </View>
+        </View>
+      </GlassHeader>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 88 }} showsVerticalScrollIndicator={false}>
         {/* Stories Row */}
         <StoriesRow myAvatar={avatarImage || null} onCreateStory={() => setCreateVisible(true)} />
 

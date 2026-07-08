@@ -14,6 +14,7 @@ import { getCoachReply, hasCoachKey, buildCoachContext } from '@/lib/coach';
 import type { CoachCreatedRoutine, CoachDeleted, CoachStart, CoachChoice, CoachReply, CoachStep } from '@/lib/coach';
 import { computeMuscleRecovery } from '@/lib/recovery';
 import { computeReadiness, readinessLabel } from '@/lib/readiness';
+import GlassHeader from '@/components/GlassHeader';
 
 type Attachment = { id: string; type: 'image' | 'file'; uri: string; name: string };
 type Message = {
@@ -318,34 +319,36 @@ export default function CoachScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      {/* ── Header ── */}
-      <View className="pb-4 px-5 border-b border-neutral-900 flex-row items-center justify-between z-10" style={{ backgroundColor: '#09090b', paddingTop: insets.top + 20 }}>
-        <View className="flex-row items-center gap-3">
-          <View className="w-9 h-9 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center">
-            <Sparkles size={15} color="#818cf8" />
-          </View>
-          <View>
-            <Text className="text-white font-semibold text-base tracking-tight">Coach AI</Text>
-            <View className="flex-row items-center gap-1.5">
-              <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#10b981' }} />
-              <Text className="text-neutral-500 text-[11px] font-medium">Context-aware</Text>
+      {/* ── Frosted glass header ── */}
+      <GlassHeader>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-3">
+            <View className="w-9 h-9 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center">
+              <Sparkles size={15} color="#818cf8" />
+            </View>
+            <View>
+              <Text className="text-white font-semibold text-base tracking-tight">Coach AI</Text>
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#10b981' }} />
+                <Text className="text-neutral-500 text-[11px] font-medium">Context-aware</Text>
+              </View>
             </View>
           </View>
+          <Pressable
+            className="w-8 h-8 items-center justify-center active:opacity-60"
+            onPress={() => setShowOptionsMenu(true)}
+          >
+            <MoreHorizontal size={20} color="#52525b" />
+          </Pressable>
         </View>
-        <Pressable 
-          className="w-8 h-8 items-center justify-center active:opacity-60"
-          onPress={() => setShowOptionsMenu(true)}
-        >
-          <MoreHorizontal size={20} color="#52525b" />
-        </Pressable>
-      </View>
+      </GlassHeader>
 
       {/* ── Message List ── */}
       <RNScrollView
         ref={scrollRef}
         onContentSizeChange={scrollToBottom}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 24, paddingBottom: 16 }}
+        contentContainerStyle={{ paddingTop: insets.top + 84, paddingBottom: 16 }}
         className="flex-1"
       >
         {messages.map((msg, idx) => {
