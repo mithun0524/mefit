@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { View, Platform } from 'react-native';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, Inter_900Black } from '@expo-google-fonts/inter';
 import { restoreSession } from '@/lib/auth';
 import { useAppStore } from '@/store/useAppStore';
@@ -38,10 +39,17 @@ export default function RootLayout() {
 
   if (!fontsLoaded) return null;
 
+  // On web, cap the app to a phone-width column centered on the page so wide
+  // screens read as an intentional device frame instead of a stretched layout.
+  const webShell = Platform.OS === 'web'
+    ? { flex: 1, width: '100%' as const, maxWidth: 480, alignSelf: 'center' as const }
+    : { flex: 1 };
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#09090b' }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
+        <View style={webShell}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#09090b' } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
@@ -50,6 +58,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ presentation: 'modal' }} />
           <Stack.Screen name="workout-summary" options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }} />
         </Stack>
+        </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

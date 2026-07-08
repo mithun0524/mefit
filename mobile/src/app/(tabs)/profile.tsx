@@ -122,13 +122,13 @@ export default function ProfileScreen() {
     return fullName.substring(0, 2).toUpperCase();
   };
 
-  // Calculate volume mathematically based on imperial/metric toggling
+  // Headline total volume — scales the unit to the magnitude (was hardcoded to
+  // "M", so ~24k lbs rendered as a broken "0.0M").
   const formatTotalVolume = (volumeLbs: number) => {
-    if (unit === 'kgs') {
-      const volKgs = Math.round(volumeLbs * 0.453592);
-      return `${(volKgs / 1000).toFixed(1)}k`;
-    }
-    return `${(volumeLbs / 1000000).toFixed(1)}M`;
+    const v = unit === 'kgs' ? volumeLbs * 0.453592 : volumeLbs;
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+    return `${Math.round(v)}`;
   };
 
   const formatWorkoutVolume = (volumeLbs: number) => {
