@@ -110,3 +110,7 @@
 .m-2 { margin-top: calc(var(--spacing) * 2); margin-right: calc(var(--spacing) * 2); margin-bottom: calc(var(--spacing) * 2); margin-left: calc(var(--spacing) * 2); }
 .m-3 { margin-top: calc(var(--spacing) * 3); margin-right: calc(var(--spacing) * 3); margin-bottom: calc(var(--spacing) * 3); margin-left: calc(var(--spacing) * 3); }
 .m-4 { margin-top: calc(var(--spacing) * 4); margin-right: calc(var(--spacing) * 4); margin-bottom: calc(var(--spacing) * 4); margin-left: calc(var(--spacing) * 4); }
+
+/* Kill the browser default focus ring on inputs (web) — we show focus via the field's own border */
+input:focus, textarea:focus, select:focus, [contenteditable]:focus { outline: none !important; box-shadow: none !important; }
+input, textarea { outline: none; }

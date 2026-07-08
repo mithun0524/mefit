@@ -644,8 +644,8 @@ export default function CoachScreen() {
       </View>
       )}
 
-      {/* ── Input Bar ── */}
-      <View className="px-5 pt-2 pb-8 border-t border-neutral-900" style={{ backgroundColor: '#09090b' }}>
+      {/* ── Input Bar ── (lifted above the floating glass tab bar) */}
+      <View className="px-5 pt-2 border-t border-neutral-900" style={{ backgroundColor: '#09090b', paddingBottom: insets.bottom + 78 }}>
         
         {/* Pending Attachments Strip */}
         {pendingAttachments.length > 0 && (
