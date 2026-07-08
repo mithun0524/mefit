@@ -8,7 +8,7 @@ interface PlateCalculatorProps {
 
 // Plate colours — dark-themed, colour-coded like real gym plates
 const PLATE_CONFIG: Record<number, { bg: string; border: string; text: string; h: number }> = {
-  45:  { bg: '#3f1f1f', border: '#ef4444', text: '#fca5a5', h: 44 },
+  45:  { bg: '#1e2540', border: '#4f6bd6', text: '#abbcf6', h: 44 },
   35:  { bg: '#1f2a3f', border: '#3b82f6', text: '#93c5fd', h: 38 },
   25:  { bg: '#1f3320', border: '#22c55e', text: '#86efac', h: 34 },
   10:  { bg: '#272210', border: '#eab308', text: '#fde047', h: 30 },

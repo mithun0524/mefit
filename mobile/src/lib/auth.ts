@@ -26,6 +26,12 @@ export async function signUp(email: string, password: string): Promise<AuthResul
   return { ok: true, needsConfirmation: !data.session };
 }
 
+export async function resetPassword(email: string): Promise<AuthResult> {
+  if (!hasSupabase()) return { ok: false, error: 'Password reset needs an account backend (not configured yet).' };
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 export async function signOutRemote(): Promise<void> {
   if (hasSupabase()) { try { await supabase.auth.signOut(); } catch { /* ignore */ } }
 }

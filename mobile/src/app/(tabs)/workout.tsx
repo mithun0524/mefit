@@ -187,6 +187,13 @@ export default function WorkoutScreen() {
     setRestTimer(null);
   }, [endSession]);
 
+  const discardWorkout = useCallback(() => {
+    Alert.alert('Discard workout?', 'This session won’t be saved.', [
+      { text: 'Keep going', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => endWorkout() },
+    ]);
+  }, [endWorkout]);
+
   const saveWorkout = useCallback(() => {
     const durationMins = workoutStartTime
       ? Math.max(1, Math.floor((Date.now() - workoutStartTime) / 60000))
@@ -535,13 +542,24 @@ export default function WorkoutScreen() {
               {activeRoutine.name}
             </Text>
           </View>
-          <Pressable
-            onPress={saveWorkout}
-            style={{ backgroundColor: '#10b981', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 100 }}
-            className="active:opacity-80"
-          >
-            <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Finish</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Pressable
+              onPress={discardWorkout}
+              accessibilityLabel="Discard workout"
+              style={{ width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#313138', alignItems: 'center', justifyContent: 'center' }}
+              className="active:opacity-70"
+            >
+              <X size={17} color="#a1a1aa" />
+            </Pressable>
+            <Pressable
+              onPress={saveWorkout}
+              accessibilityLabel="Finish and save workout"
+              style={{ backgroundColor: '#10b981', paddingHorizontal: 18, paddingVertical: 9, borderRadius: 100 }}
+              className="active:opacity-80"
+            >
+              <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Finish</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Inline stats strip */}

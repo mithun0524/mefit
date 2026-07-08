@@ -144,6 +144,7 @@ export interface AppState {
   updateProfile: (updates: Partial<ProfileState>) => void;
   addWorkout: (workout: Omit<WorkoutRecord, 'id' | 'timestamp'>) => void;
   addFeedPost: (post: FeedPost) => void;
+  addComment: (postId: string, comment: Comment, parentId?: string) => void;
   toggleLikePost: (id: string) => void;
   toggleSavePost: (id: string) => void;
   deleteWorkout: (id: string | number) => void;
@@ -358,6 +359,22 @@ export const useAppStore = create<AppState>()(
       })),
       addFeedPost: (post) => set((state) => ({
         feed: [post, ...state.feed]
+      })),
+
+      // Persist a comment (or a reply, when parentId is given) on a feed post.
+      addComment: (postId, comment, parentId) => set((state) => ({
+        feed: state.feed.map(p => {
+          if (p.id !== postId) return p;
+          if (parentId) {
+            return {
+              ...p,
+              commentCount: p.commentCount + 1,
+              initialComments: p.initialComments.map(c =>
+                c.id === parentId ? { ...c, replies: [...(c.replies || []), comment] } : c),
+            };
+          }
+          return { ...p, commentCount: p.commentCount + 1, initialComments: [...p.initialComments, comment] };
+        }),
       })),
 
       deleteWorkout: (id) => set((state) => ({

@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable } from '@/tw';
 import { useRouter, Link } from 'expo-router';
 import { Mail, Lock, Dumbbell } from 'lucide-react-native';
+import { Alert } from 'react-native';
 import { useAppStore } from '@/store/useAppStore';
-import { signIn } from '@/lib/auth';
+import { signIn, resetPassword } from '@/lib/auth';
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -14,7 +17,9 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim() || loading) return;
+    if (loading) return;
+    if (!EMAIL_RE.test(email.trim())) { setError('Enter a valid email address'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     setError(null);
     const res = await signIn(email, password);
@@ -22,6 +27,15 @@ export default function LoginScreen() {
     if (!res.ok) { setError(res.error || 'Could not sign in'); return; }
     setAuthenticated(true);
     router.replace('/(tabs)');
+  };
+
+  const handleForgot = async () => {
+    if (!EMAIL_RE.test(email.trim())) { setError('Enter your email above first, then tap reset'); return; }
+    const res = await resetPassword(email);
+    Alert.alert(
+      res.ok ? 'Check your email' : 'Password reset',
+      res.ok ? 'We sent you a reset link.' : (res.error || 'Could not send reset link'),
+    );
   };
 
   return (
@@ -77,13 +91,18 @@ export default function LoginScreen() {
           </View>
         </View>
 
+        <Pressable onPress={handleForgot} className="self-end -mt-1 active:opacity-60" accessibilityLabel="Reset password">
+          <Text className="text-[13px] text-neutral-400 font-medium">Forgot password?</Text>
+        </Pressable>
+
         {error ? (
-          <Text className="text-[13px] text-red-400 ml-1 -mt-1">{error}</Text>
+          <Text className="text-[13px] text-red-400 ml-1">{error}</Text>
         ) : null}
 
         <Pressable
           onPress={handleLogin}
           disabled={loading}
+          accessibilityLabel="Sign in"
           style={{ backgroundColor: '#4f46e5', opacity: loading ? 0.6 : 1 }}
           className="py-4 rounded-xl items-center justify-center mt-4 active:opacity-85"
         >

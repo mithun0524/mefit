@@ -3,6 +3,7 @@ import { View, Text, Pressable, Image, ScrollView } from '@/tw';
 import { TextInput, Modal, Dimensions, ScrollView as RNScrollView } from 'react-native';
 import { X, Send, Heart, MessageCircle, CornerDownRight } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useAppStore } from '@/store/useAppStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -74,8 +75,10 @@ function CommentItem({
   );
 }
 
-export default function CommentSheet({ visible, onClose, postId, initialComments }: Props) {
-  const [comments, setComments] = useState<Comment[]>(initialComments);
+export default function CommentSheet({ visible, onClose, postId }: Props) {
+  // Comments live in the store now, so they persist across opens + update the count.
+  const comments = useAppStore(s => s.feed.find(p => p.id === postId)?.initialComments ?? []);
+  const addComment = useAppStore(s => s.addComment);
   const [input, setInput] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ id: string; author: string } | null>(null);
   const scrollRef = useRef<any>(null);
@@ -99,18 +102,7 @@ export default function CommentSheet({ visible, onClose, postId, initialComments
       replies: [],
     };
 
-    if (replyingTo) {
-      // Thread the reply under the parent comment
-      setComments(prev =>
-        prev.map(c =>
-          c.id === replyingTo.id
-            ? { ...c, replies: [...c.replies, newComment] }
-            : c
-        )
-      );
-    } else {
-      setComments(prev => [...prev, newComment]);
-    }
+    addComment(postId, newComment, replyingTo?.id);
 
     setInput('');
     setReplyingTo(null);

@@ -552,6 +552,27 @@ export default function CoachScreen() {
           );
         })}
 
+        {/* Empty state — fill the space with tappable quick-starts */}
+        {messages.length <= 1 && !isTyping && liveSteps.length === 0 && (
+          <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
+            <Text style={{ color: '#52525b', fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 10, marginLeft: 2 }}>TRY ASKING</Text>
+            <View style={{ gap: 8 }}>
+              {SUGGESTED_PROMPTS.map((p, i) => (
+                <Pressable
+                  key={i}
+                  onPress={() => sendMessage(p)}
+                  accessibilityLabel={p}
+                  className="active:opacity-70"
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#141418', borderWidth: 1, borderColor: '#26262c', borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16 }}
+                >
+                  <Text style={{ color: '#e4e4e7', fontSize: 14, fontWeight: '500' }}>{p}</Text>
+                  <ChevronRight size={16} color="#52525b" />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Typing indicator */}
         {isTyping && (
           <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
@@ -596,7 +617,8 @@ export default function CoachScreen() {
         )}
       </RNScrollView>
 
-      {/* ── Suggested Prompts ── */}
+      {/* ── Suggested Prompts (once the chat is going; empty-state shows them inline) ── */}
+      {messages.length > 1 && (
       <View className="border-t border-neutral-900" style={{ backgroundColor: '#09090b' }}>
         <ScrollView
           horizontal
@@ -617,6 +639,7 @@ export default function CoachScreen() {
           ))}
         </ScrollView>
       </View>
+      )}
 
       {/* ── Input Bar ── */}
       <View className="px-5 pt-2 pb-8 border-t border-neutral-900" style={{ backgroundColor: '#09090b' }}>
