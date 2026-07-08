@@ -5,6 +5,8 @@ import MuscleHeatmap from '@/components/MuscleHeatmap';
 import ReadinessRing from '@/components/ReadinessRing';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/useAppStore';
@@ -82,10 +84,16 @@ export default function DashboardScreen() {
         style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 360 }}
         pointerEvents="none"
       />
-      {/* Header */}
-      <View style={{ paddingTop: insets.top + 20, paddingBottom: 10, paddingHorizontal: 20 }} className="flex-row justify-between items-center z-10">
+      {/* Frosted glass header — content scrolls beneath it (iOS nav material) */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, paddingTop: insets.top + 16, paddingBottom: 12, paddingHorizontal: 20 }} className="flex-row justify-between items-center">
+        <View style={StyleSheet.absoluteFill}>
+          <BlurView tint="dark" intensity={28} style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(9,9,11,0.45)' }]} />
+          {/* specular hairline */}
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        </View>
         <View>
-          <Text className="text-2xl font-bold text-white tracking-tight">Overview</Text>
+          <Text className="text-[30px] font-bold text-white" style={{ letterSpacing: -0.6 }}>Overview</Text>
           <Text className="text-neutral-500 text-[13px] mt-0.5">Ready to crush it today?</Text>
         </View>
         <View className="flex-row items-center gap-3">
@@ -105,7 +113,7 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" style={{ paddingHorizontal: 20 }} contentContainerStyle={{ paddingTop: insets.top + 96, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
 
         {/* ① Training readiness — hero */}
         <Animated.View entering={FadeInDown.duration(500).springify()} style={{ ...CARD, marginBottom: 20 }}>
